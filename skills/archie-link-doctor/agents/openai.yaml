@@ -1,0 +1,5 @@
+interface:
+  display_name: "ArchieLink Doctor"
+  short_description: "Read-only network diagnosis for agent environments"
+  default_prompt: "Use $archie-link-doctor to diagnose network access without changing system settings."
+  brand_color: "#F48120"

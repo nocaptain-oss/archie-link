@@ -1,0 +1,19 @@
+.DS_Store
+.superpowers/
+*.zip
+*.log
+coverage.out
+bin/
+dist/
+.env
+.env.*
+artifacts/
+# AGC 云测试证据（DEVICE-MATRIX、cloud-debug 日志、compat 结果）刻意仅本地归档，不入库
+mobile/harmony-companion/artifacts/
+marketing/
+.tmp-ui-check/
+.ui-check*-analysis.json
+.deveco/
+.nfgc-analysis/
+.tmp_ui_analysis/
+.tmp_ui_recog/

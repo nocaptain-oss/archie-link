@@ -1,0 +1,6 @@
+{
+  "layered-image": {
+    "background": "$media:archielink_icon_background",
+    "foreground": "$media:archielink_icon_foreground"
+  }
+}
