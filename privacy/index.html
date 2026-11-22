@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArchieLink 汪连 — 隐私政策 Privacy Policy</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "HarmonyOS Sans SC", "PingFang SC", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.7; margin: 0; padding: 0;
+    background: #f7f8fa; color: #1a1d21;
+  }
+  main { max-width: 760px; margin: 0 auto; padding: 32px 20px 64px; }
+  .card { background: #fff; border-radius: 14px; padding: 28px 28px 36px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+  h1 { font-size: 1.5em; margin: 0 0 4px; }
+  .sub { color: #6b7280; font-size: .9em; margin: 0 0 20px; }
+  .langs { margin: 0 0 24px; }
+  .langs a { color: #2563eb; text-decoration: none; margin-right: 12px; font-weight: 600; }
+  h2 { font-size: 1.15em; margin: 28px 0 8px; border-top: 1px solid #eceef1; padding-top: 24px; }
+  h2:first-of-type { border-top: none; padding-top: 0; }
+  p, li { font-size: .95em; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: .88em; }
+  th, td { border: 1px solid #e5e7eb; padding: 8px 10px; text-align: left; vertical-align: top; }
+  th { background: #f3f4f6; }
+  code { background: #f3f4f6; border-radius: 4px; padding: 1px 5px; font-size: .9em; }
+  .en { border-top: 3px solid #eceef1; margin-top: 40px; padding-top: 8px; }
+  footer { text-align: center; color: #9ca3af; font-size: .8em; margin-top: 40px; }
+  @media (prefers-color-scheme: dark) {
+    body { background: #14161a; color: #e5e7eb; }
+    .card { background: #1d2026; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+    h2 { border-top-color: #2a2e36; }
+    th, td { border-color: #2a2e36; }
+    th { background: #232730; }
+    code { background: #232730; }
+    .en { border-top-color: #2a2e36; }
+  }
+</style>
+</head>
+<body>
+<main>
+<div class="card">
+
+<h1 id="zh">汪连 ArchieLink — 隐私政策</h1>
+<p class="sub">版本 v1.0 ｜ 生效日期：2026-11-22 ｜ 适用范围：archielink CLI、各平台伴侣应用与云端控制面</p>
+<p class="langs"><a href="#zh">中文</a><a href="#en">English</a></p>
+
+<h2>1. 本地优先原则</h2>
+<p>ArchieLink 的核心设计是<strong>本地优先</strong>：网络诊断、连接建立、健康检查和回滚全部在你的设备上执行。云端只承载订单、授权、设备注册、撤销和持续增值服务，<strong>不承载用户网络流量，不存储本地秘密</strong>。</p>
+<p>断网时 <code>down</code> 和 <code>rollback</code> 永远可用——安全恢复不依赖云端，也不向云端询问。</p>
+
+<h2>2. 我们绝不收集的数据</h2>
+<p>以下数据在任何情况下不进入云端，也不被产品读取：</p>
+<ul>
+<li>你的网络流量与 DNS 查询内容（隧道由 Cloudflare 依据你自己的配置建立，我们不经手流量）。</li>
+<li>浏览器 Cookie、支付信息（支付密码/验证码/完整支付凭据）、系统登录凭据。</li>
+<li>WireGuard 私钥与完整配置（仅存在于你设备的受保护文件或系统密钥库中）。</li>
+<li>你本地服务的响应正文。</li>
+</ul>
+
+<h2>3. 你设备上存储的数据</h2>
+<table>
+<tr><th>数据</th><th>位置</th><th>用途</th><th>保护</th></tr>
+<tr><td>安装 ID（随机标识，非硬件序列号）</td><td>状态目录</td><td>设备注册与授权绑定</td><td>0600 权限</td></tr>
+<tr><td>设备密钥（P-256 椭圆曲线）</td><td>系统安全密钥库</td><td>激活与续租的设备签名</td><td>系统密钥库</td></tr>
+<tr><td>授权租约（lease）</td><td>状态目录</td><td>离线验证授权有效性</td><td>0600 权限</td></tr>
+<tr><td>网络快照</td><td>状态目录</td><td>自动回滚恢复原始网络配置</td><td>0600 权限</td></tr>
+<tr><td>你自己的 WireGuard 配置</td><td>你指定的路径</td><td>建立隧道</td><td>由你控制</td></tr>
+</table>
+<p>卸载或删除状态目录即可清除以上本地数据（设备密钥在钥匙串中单独删除）。</p>
+
+<h2>4. 云端控制面存储的数据</h2>
+<p>购买或激活后，服务端为履行授权需要保存：</p>
+<ul>
+<li><strong>订单</strong>：订单号、计划、金额、支付交易号、凭证哈希、履约状态、创建时间。</li>
+<li><strong>订阅</strong>：计划、状态、订阅年度起点、撤销标识。</li>
+<li><strong>设备注册</strong>：安装 ID、设备公钥、注册时间、名额消耗标记、注册事件时间戳（用于设备池限速）。</li>
+</ul>
+<p>服务端<strong>不保存</strong>：支付密码、验证码、商户私钥、完整支付凭据、你的网络配置或任何流量数据。支付真实性由支付平台侧完成，我们只接收交易结果。</p>
+
+<h2>5. 服务端日志</h2>
+<p>公网网关保留访问日志，内容为来源 IP、时间、请求路径、状态码，<strong>仅用于限流、滥用防护和安全审计</strong>。当前配置为每日轮转、保留 52 天。应用侧不记录用户网络内容。</p>
+
+<h2>6. 跨设备只读会话</h2>
+<p>跨设备体检采用只读会话设计：</p>
+<ul>
+<li>一次性配对码，目标设备显示一次，服务端不留存。</li>
+<li>临时自签证书与临时密钥仅存在于内存，会话结束即消失。</li>
+<li>远程调用白名单只有只读诊断（检测/计划/体检），<strong>无 shell、无写操作、无文件访问</strong>。</li>
+<li>目标设备一次会话只接受一个连接，配对码错误同样立即关闭（fail-closed）。</li>
+</ul>
+
+<h2>7. 数据留存与删除</h2>
+<ul>
+<li><strong>设备移除</strong>：订阅持有人可在设备管理中移除设备；被移除设备的租约在下次同步时失效。</li>
+<li><strong>退款/撤销</strong>：退款或撤销事件后服务端停止续租并推进撤销；订单记录按平台交易对账要求保留。</li>
+<li><strong>删除申请</strong>：预发布阶段经购买渠道公布的官方支持渠道受理；正式支持渠道随产品正式发布公布。</li>
+</ul>
+
+<h2>8. 第三方服务</h2>
+<table>
+<tr><th>第三方</th><th>角色</th><th>边界</th></tr>
+<tr><td>Cloudflare WARP / WireGuard</td><td>技术后端</td><td>隧道依据你自己的配置建立；我们不经手你与 Cloudflare 之间的凭据</td></tr>
+<tr><td>支付平台</td><td>支付通道</td><td>支付在平台侧完成；我们只接收交易号与凭证哈希</td></tr>
+</table>
+
+<h2>9. 政策变更</h2>
+<p>本政策变更将在发布渠道公告；重大变更（数据类别或用途新增）将在产品内提示。历史版本存档于版本库。</p>
+
+<h2>10. 适用范围与联系</h2>
+<p>本政策适用于 <code>archielink</code> CLI、各平台伴侣应用与云端控制面。预发布阶段联系渠道以购买渠道为准；正式支持渠道随产品正式发布公布。</p>
+
+<div class="en">
+<h1 id="en">ArchieLink — Privacy Policy</h1>
+<p class="sub">Version v1.0 ｜ Effective date: 2026-11-22 ｜ Scope: the archielink CLI, companion apps on all platforms, and the cloud control plane</p>
+
+<h2>1. Local-First Principle</h2>
+<p>ArchieLink is designed <strong>local-first</strong>: network diagnostics, connection setup, health checks, and rollback all run on your device. The cloud only carries orders, licensing, device registration, revocation, and continuous value-added services. It <strong>never carries user network traffic and never stores local secrets</strong>.</p>
+<p>When you are offline, <code>down</code> and <code>rollback</code> always work — safe recovery never depends on the cloud.</p>
+
+<h2>2. Data We Never Collect</h2>
+<p>The following data never reaches the cloud and is never read by the product:</p>
+<ul>
+<li>Your network traffic and DNS query contents (the tunnel is established by Cloudflare based on your own profile; we never handle your traffic).</li>
+<li>Browser cookies, payment information (payment passwords / verification codes / full payment credentials), or system login credentials.</li>
+<li>WireGuard private keys and full profiles (they exist only in protected files or the system key store on your device).</li>
+<li>Response bodies of your local services.</li>
+</ul>
+
+<h2>3. Data Stored on Your Device</h2>
+<table>
+<tr><th>Data</th><th>Location</th><th>Purpose</th><th>Protection</th></tr>
+<tr><td>Installation ID (random identifier, not a hardware serial)</td><td>State directory</td><td>Device registration and license binding</td><td>0600 permissions</td></tr>
+<tr><td>Device key (P-256)</td><td>System secure key store</td><td>Device signature for activation and renewal</td><td>System key store</td></tr>
+<tr><td>License lease</td><td>State directory</td><td>Offline license validation</td><td>0600 permissions</td></tr>
+<tr><td>Network snapshot</td><td>State directory</td><td>Automatic rollback to your original network configuration</td><td>0600 permissions</td></tr>
+<tr><td>Your own WireGuard profile</td><td>Path chosen by you</td><td>Tunnel setup</td><td>Under your control</td></tr>
+</table>
+<p>Uninstalling the app or deleting the state directory removes all local data above (the device key is removed separately from the key store).</p>
+
+<h2>4. Data Stored in the Cloud Control Plane</h2>
+<p>After purchase or activation, the server stores what is required to fulfill your license:</p>
+<ul>
+<li><strong>Orders</strong>: order number, plan, amount, payment transaction number, credential hash, fulfillment status, and creation time.</li>
+<li><strong>Subscriptions</strong>: plan, status, subscription-year start, and revocation epoch.</li>
+<li><strong>Device registrations</strong>: installation ID, device public key, registration time, quota-consumption flag, and registration event timestamps (used for device-pool rate limiting).</li>
+</ul>
+<p>The server <strong>does not store</strong>: payment passwords, verification codes, merchant private keys, full payment credentials, your network profiles, or any traffic data. Payment authenticity is verified by the payment platform; we only receive the transaction result.</p>
+
+<h2>5. Server Logs</h2>
+<p>The public gateway keeps access logs containing source IP, time, request path, and status code, <strong>used only for rate limiting, abuse protection, and security auditing</strong>. Logs rotate daily and are retained for 52 days. The app itself never logs your network contents.</p>
+
+<h2>6. Cross-Device Read-Only Sessions</h2>
+<p>Cross-device checkups use a read-only session design:</p>
+<ul>
+<li>One-time pairing code, shown once on the target device and never stored on the server.</li>
+<li>Temporary self-signed certificates and keys exist only in memory and vanish when the session ends.</li>
+<li>The remote-call whitelist contains only read-only diagnostics — <strong>no shell, no writes, no file access</strong>.</li>
+<li>The target device accepts exactly one connection per session; a wrong pairing code closes the session immediately (fail-closed).</li>
+</ul>
+
+<h2>7. Data Retention and Deletion</h2>
+<ul>
+<li><strong>Device removal</strong>: the subscription holder can remove a device in device management; the removed device's lease expires at the next sync.</li>
+<li><strong>Refund / revocation</strong>: after a refund or revocation, the server stops renewing the lease and advances the revocation epoch; order records are retained as required for platform reconciliation.</li>
+<li><strong>Deletion requests</strong>: during the pre-release stage, handled via the official support channel published with your purchase; the formal support channel will be published at general availability.</li>
+</ul>
+
+<h2>8. Third-Party Services</h2>
+<table>
+<tr><th>Third party</th><th>Role</th><th>Boundary</th></tr>
+<tr><td>Cloudflare WARP / WireGuard</td><td>Technical backend</td><td>The tunnel is established from your own profile; we never handle your credentials with Cloudflare</td></tr>
+<tr><td>Payment platform</td><td>Payment channel</td><td>Payment is completed on the platform side; we only receive the transaction number and a credential hash</td></tr>
+</table>
+
+<h2>9. Policy Changes</h2>
+<p>Changes to this policy will be announced on our release channels; material changes (new data categories or purposes) will also be surfaced in the product. Historical versions are archived in the repository.</p>
+
+<h2>10. Scope and Contact</h2>
+<p>This policy applies to the <code>archielink</code> CLI, companion apps on all platforms, and the cloud control plane. During the pre-release stage, contact us via the channel published with your purchase; the formal support channel will be published at general availability.</p>
+</div>
+
+<footer>汪连 ArchieLink · Privacy Policy · v1.0</footer>
+</div>
+</main>
+</body>
+</html>
