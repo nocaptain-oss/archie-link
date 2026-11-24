@@ -1094,6 +1094,15 @@ struct Index {
       }
       if (uris[0].toLowerCase().endsWith('.ovpn')) {
         this.detail = '该文件是 OpenVPN (.ovpn) 配置，与 WireGuard 不兼容。请改用 WireGuard 导出的 .conf 配置文件。';
+        this.getUIContext().showAlertDialog({
+          title: '不兼容的配置格式',
+          message: '该文件是 OpenVPN (.ovpn) 配置，与 WireGuard 不兼容。请改用 WireGuard 导出的 .conf 配置文件。',
+          confirm: {
+            value: '知道了',
+            action: (): void => {}
+          },
+          cancel: (): void => {}
+        });
         return;
       }
       const file = await fileIo.open(uris[0]);
