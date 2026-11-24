@@ -36,6 +36,10 @@
         "label": "$string:EntryAbility_label",
         "startWindowIcon": "$media:start_window_icon",
         "startWindowBackground": "$color:start_window_background",
+        "supportWindowMode": [
+          "split",
+          "floating"
+        ],
         "backgroundModes": [
           "dataTransfer"
         ],

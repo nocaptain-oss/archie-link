@@ -453,7 +453,7 @@ struct Index {
                   .fontSize(16.5)
                   .fontWeight(FontWeight.Medium)
                   .fontColor('#0a1513')
-                Text(this.configured ? '配置已就绪，可更换配置文件' : '导入或更换配置文件')
+                Text(this.configured ? '已就绪 · 仅支持 WireGuard .conf 配置文件' : '仅支持 WireGuard .conf 配置文件，不支持 .ovpn')
                   .fontSize(11.5)
                   .fontColor('#63716e')
               }
@@ -1085,10 +1085,15 @@ struct Index {
       const context = this.getUIContext().getHostContext() as common.UIAbilityContext;
       const documentPicker = new picker.DocumentViewPicker(context);
       const uris = await documentPicker.select({
-        fileSuffixFilters: ['.conf', '.wg', '.txt'],
+        fileSuffixFilters: ['.conf', '.wg', '.txt', '.ovpn'],
         maxSelectNumber: 1
       });
       if (!uris || uris.length === 0) {
+        this.detail = '未选择文件。仅支持 WireGuard .conf（.wg/.txt）配置文件。';
+        return;
+      }
+      if (uris[0].toLowerCase().endsWith('.ovpn')) {
+        this.detail = '该文件是 OpenVPN (.ovpn) 配置，与 WireGuard 不兼容。请改用 WireGuard 导出的 .conf 配置文件。';
         return;
       }
       const file = await fileIo.open(uris[0]);
@@ -1098,7 +1103,7 @@ struct Index {
       const raw = decodeUTF8(buffer, length);
       const config = parseWgConfig(raw);
       if (config.error) {
-        this.detail = config.error;
+        this.detail = `${config.error}（仅支持 WireGuard .conf 配置文件）`;
         return;
       }
       this.persistRawConfig(raw);
