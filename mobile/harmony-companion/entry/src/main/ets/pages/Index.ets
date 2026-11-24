@@ -1113,6 +1113,15 @@ struct Index {
       const config = parseWgConfig(raw);
       if (config.error) {
         this.detail = `${config.error}（仅支持 WireGuard .conf 配置文件）`;
+        this.getUIContext().showAlertDialog({
+          title: '配置文件无效',
+          message: `${config.error}。仅支持 WireGuard .conf 配置文件。`,
+          confirm: {
+            value: '知道了',
+            action: (): void => {}
+          },
+          cancel: (): void => {}
+        });
         return;
       }
       this.persistRawConfig(raw);
@@ -1130,11 +1139,29 @@ struct Index {
       const text: string = data.getPrimaryText();
       if (!text || text.trim().length === 0) {
         this.detail = '剪贴板没有可导入的配置文本。';
+        this.getUIContext().showAlertDialog({
+          title: '粘贴导入失败',
+          message: '剪贴板没有可导入的配置文本。',
+          confirm: {
+            value: '知道了',
+            action: (): void => {}
+          },
+          cancel: (): void => {}
+        });
         return;
       }
       const config = parseWgConfig(text.trim());
       if (config.error) {
         this.detail = config.error;
+        this.getUIContext().showAlertDialog({
+          title: '配置内容无效',
+          message: `${config.error}。仅支持 WireGuard .conf 配置文件。`,
+          confirm: {
+            value: '知道了',
+            action: (): void => {}
+          },
+          cancel: (): void => {}
+        });
         return;
       }
       this.persistRawConfig(text.trim());
