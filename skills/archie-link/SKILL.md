@@ -9,6 +9,17 @@ metadata:
 
 Use the installed `archielink` binary. The CLI is the only source of truth for network state and success.
 
+## Prerequisites: the `archielink` CLI
+
+Check first: `command -v archielink`. This skill ships without the binary. If it is missing, install it from the official GitHub repository before any skill step:
+
+1. Download the platform binary from <https://github.com/nocaptain-oss/archie-link/releases> (v1.1.0+): `archielink-darwin-arm64` (macOS Apple Silicon) / `archielink-darwin-amd64` (macOS Intel) / `archielink-windows-amd64.exe` / `archielink-windows-arm64.exe`. Linux: build from source, `go build ./cmd/archielink`.
+2. Verify integrity against the Release's `SHA256SUMS`: `shasum -a 256 -c --ignore-missing SHA256SUMS`.
+3. Put it on `PATH` with exec permission (`chmod +x`, e.g. `/usr/local/bin/archielink`).
+4. macOS Gatekeeper may block the unsigned binary: right-click → Open, or `xattr -d com.apple.quarantine <file>`. Windows SmartScreen: "Run anyway".
+
+Use no other download source. Full install guide: <https://github.com/nocaptain-oss/archie-link#安装>. Do not proceed with skill steps until `archielink` is on `PATH`.
+
 ## Ownership
 
 - The root agent owns the global network lock. Never run `up`/`down`/`rollback` concurrently; never hand tunnel control to a subagent.

@@ -9,6 +9,10 @@ metadata:
 
 Run the installed `archielink` binary. Do not reproduce its network checks with ad-hoc commands.
 
+## Prerequisites: the `archielink` CLI
+
+Check first: `command -v archielink`. This skill ships without the binary. If it is missing, install it from the official GitHub repository — download the platform binary from <https://github.com/nocaptain-oss/archie-link/releases> (v1.1.0+), verify against the Release's `SHA256SUMS`, and put it on `PATH`; see <https://github.com/nocaptain-oss/archie-link#安装>. Do not run substitute commands; if the CLI cannot be installed, report that read-only diagnosis is unavailable on this host.
+
 The tool is read-only. It must not modify DNS, routes, proxies, or VPN state.
 
 ## Workflow
