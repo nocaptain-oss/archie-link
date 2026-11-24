@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="汪连 ArchieLink｜外网访问专家。先体检，再连接；失败自动还原。按次激活、个人永久版、家庭年度版三种版本。">
+<title>汪连 ArchieLink｜外网访问专家</title>
+<style>
+  :root {
+    --ink: #1c2430; --sub: #5a6676; --line: #e3e8ef; --bg: #f7f9fc;
+    --accent: #2563eb; --card: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    line-height: 1.7; font-size: 16px;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 0 20px 64px; }
+  header { padding: 56px 0 8px; }
+  h1 { font-size: 30px; margin: 0 0 4px; letter-spacing: 0.5px; }
+  .brand-sub { color: var(--sub); margin: 0 0 18px; }
+  .tagline {
+    font-size: 18px; color: var(--ink); background: var(--card);
+    border: 1px solid var(--line); border-left: 4px solid var(--accent);
+    border-radius: 10px; padding: 14px 18px; margin: 24px 0 0;
+  }
+  h2 { font-size: 21px; margin: 44px 0 12px; }
+  p { margin: 10px 0; }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 18px 20px; margin: 14px 0;
+  }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { padding: 12px 14px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  th { background: #eef2f8; font-size: 14px; }
+  tr:last-child td { border-bottom: none; }
+  .price { white-space: nowrap; font-weight: 600; }
+  ul { margin: 8px 0; padding-left: 22px; }
+  li { margin: 4px 0; }
+  code, pre {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    background: #eef2f8; border-radius: 6px;
+  }
+  code { padding: 2px 6px; font-size: 14px; }
+  pre { padding: 14px 16px; overflow-x: auto; font-size: 14px; line-height: 1.6; }
+  .note { color: var(--sub); font-size: 14px; }
+  footer { margin-top: 56px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--sub); font-size: 13px; }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>汪连 ArchieLink</h1>
+  <p class="brand-sub">外网访问专家（暂定名）</p>
+  <div class="tagline">Google、YouTube、GitHub 连不上？Archie 先体检，再连接；失败自动还原。</div>
+</header>
+
+<main>
+<h2>这是什么</h2>
+<div class="card">
+  <p>ArchieLink 是一个网络连接工具：先用 Archie 体检本机网络（DNS、路由、代理与本地服务），确认可连再建立安全连接；连接失败会自动还原到连接前状态，不破坏现有网络配置。</p>
+  <p>技术后端使用 Cloudflare WARP 与 WireGuard，二者仅作为技术名称，不代表产品本身。支持 macOS、HarmonyOS、iOS / Android（通过官方 WireGuard App 导入配置）。</p>
+</div>
+
+<h2>版本与价格</h2>
+<table>
+  <thead>
+    <tr><th>版本</th><th>价格</th><th>包含内容</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>按次激活</strong></td>
+      <td class="price">¥19.9</td>
+      <td>
+        <ul>
+          <li>一次「安全激活 / 修复任务」</li>
+          <li>执行窗口 14 天（7 天租约 + 7 天离线宽限），窗口期内可多次执行连接</li>
+          <li>限 1 台设备，不自动续费</li>
+          <li>一次性数字商品：任务履约后视为已消费</li>
+          <li>不含完整配置导出与二维码权益（脱敏导出免费）</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>个人永久版</strong></td>
+      <td class="price">¥199</td>
+      <td>
+        <ul>
+          <li>一次买断，不按年续费：指当前大版本长期使用，含产品存续期内的兼容与安全更新，不承诺无限期线路</li>
+          <li>限 1 名个人、2 台自有设备</li>
+          <li>12 个月更新与支持</li>
+          <li>含完整配置导出与二维码权益</li>
+          <li>个人非商业许可；不含云管理面板与家庭设备池</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td><strong>家庭年度版</strong></td>
+      <td class="price">¥69/年</td>
+      <td>
+        <ul>
+          <li>家庭设备池，最多 12 台设备</li>
+          <li>有效期 12 个月，到期可续费（不自动扣款）</li>
+          <li>含云端管理面板与远程支持</li>
+          <li>含完整配置导出与二维码权益</li>
+        </ul>
+      </td>
+    </tr>
+  </tbody>
+</table>
+<p class="note">价格、有效期与权益以购买页实际展示为准。三个版本均经支付宝收款。</p>
+
+<h2>如何购买</h2>
+<div class="card">
+  <p>安装 <code>archielink</code> 命令行工具后，一条命令完成购买到激活：</p>
+<pre># 按次激活（¥19.9）
+archielink buy activation-task --server https://api.uzphoto.com
+
+# 个人永久版（¥199）
+archielink buy perpetual --server https://api.uzphoto.com
+
+# 家庭年度版（¥69/年）
+archielink buy family-annual-12 --server https://api.uzphoto.com</pre>
+  <p>购买时终端会直接展示支付宝二维码，用手机支付宝扫码支付即可，无需跳转浏览器；支付完成后自动激活。也支持支付宝托管购买页完成支付。</p>
+</div>
+
+<h2>退款与争议口径</h2>
+<div class="card">
+  <ul>
+    <li>按次激活为一次性数字商品，任务履约后视为已消费；是否主动退款以本页公示为准。</li>
+    <li>平台发生退款、拒付或撤销事件后，对应授权会停止续租。</li>
+    <li>永久版「一次买断」指当前大版本长期使用，包含产品存续期内的兼容与安全更新；不是无限期线路承诺。</li>
+  </ul>
+</div>
+
+<h2>支持与隐私</h2>
+<div class="card">
+  <p>遇到问题请先运行 <code>archielink doctor</code> 自检。隐私政策见<a href="privacy/">隐私政策页</a>。</p>
+</div>
+</main>
+
+<footer>
+  <p>© 2026 汪连 ArchieLink｜外网访问专家。「汪连 ArchieLink」为暂定工作名，尚未完成正式商标与同名软件检索；对外发布前会完成知识产权检索。Cloudflare WARP、WireGuard 与 wgcf 只作为技术后端名称，不替代产品名。</p>
+</footer>
+</div>
+</body>
+</html>
