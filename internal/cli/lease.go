@@ -125,15 +125,10 @@ func runLease(args []string, stdout, stderr io.Writer, deps Dependencies) int {
 	if command == "renew-loop" {
 		return runLeaseRenewLoop(ctx, client, path, lifecycle, options, stdout, stderr)
 	}
-	var (
-		data []byte
-		err  error
-	)
 	if command == "activate" {
-		data, err = client.Activate(ctx, options.order)
-	} else {
-		data, err = client.Renew(ctx, options.order)
+		return storeActivatedLease(ctx, client, options.order, path, lifecycle, stdout, stderr, options.jsonOutput)
 	}
+	data, err := client.Renew(ctx, options.order)
 	if err != nil {
 		return writeLifecycleError(stdout, stderr, options.jsonOutput, 4, "lease_failed", err)
 	}
@@ -148,6 +143,44 @@ func runLease(args []string, stdout, stderr io.Writer, deps Dependencies) int {
 		return writeLifecycleError(stdout, stderr, options.jsonOutput, 4, "lease_write_failed", err)
 	}
 	if options.jsonOutput {
+		if err := writeJSON(stdout, map[string]any{
+			"schema_version":      "1",
+			"lease_file":          path,
+			"license_id":          lease.LicenseID,
+			"plan":                lease.Plan,
+			"features":            lease.Features,
+			"issued_at":           lease.IssuedAt,
+			"expires_at":          lease.ExpiresAt,
+			"offline_grace_until": lease.OfflineGraceUntil,
+			"revocation_epoch":    lease.RevocationEpoch,
+		}); err != nil {
+			fmt.Fprintf(stderr, "encode lease result: %v\n", err)
+			return 1
+		}
+		return 0
+	}
+	fmt.Fprintf(stdout, "lease written to %s (license %s, expires %s)\n",
+		path, lease.LicenseID, lease.ExpiresAt.Format(time.RFC3339))
+	return 0
+}
+
+// storeActivatedLease 用已支付订单在本机完成激活并落盘租约（lease activate 与 buy 共用）。
+func storeActivatedLease(ctx context.Context, client leaseclient.Client, orderID, path string, lifecycle *LifecycleDependencies, stdout, stderr io.Writer, jsonOutput bool) int {
+	data, err := client.Activate(ctx, orderID)
+	if err != nil {
+		return writeLifecycleError(stdout, stderr, jsonOutput, 4, "lease_failed", err)
+	}
+	lease, err := decodeLease(data)
+	if err != nil {
+		return writeLifecycleError(stdout, stderr, jsonOutput, 4, "lease_malformed", err)
+	}
+	if err := recordLeaseState(lifecycle.Store, orderID, lease, time.Now()); err != nil {
+		return writeLifecycleError(stdout, stderr, jsonOutput, 4, "lease_state_write_failed", err)
+	}
+	if err := writeLeaseFile(path, data); err != nil {
+		return writeLifecycleError(stdout, stderr, jsonOutput, 4, "lease_write_failed", err)
+	}
+	if jsonOutput {
 		if err := writeJSON(stdout, map[string]any{
 			"schema_version":      "1",
 			"lease_file":          path,

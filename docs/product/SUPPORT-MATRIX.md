@@ -43,7 +43,7 @@ macOS 分发注记：Developer ID 签名/公证阻塞于 Apple Developer 账号�
 | Android 手机/平板（D1 伴侣 APK） | — | 伴侣应用（`VpnService` + AndroidKeyStore） | T1：真实 WARP、ADB 共存、应用白名单、断开清理、UI 验收 | PROJECT-MEMORY D1 条目 |
 | iOS / iPadOS（零伴侣轨道 D4） | iOS/iPadOS 15（官方 WireGuard App 当前要求） | 官方 WireGuard App + 宿主 `export` 配置导入（conf/二维码） | T1：iPad 第 7 代 / iPadOS 18.7.1 / WireGuard 1.0.16（港区）——conf AirDrop 导入 + **iPad 扫码全链路 PASS**（V0.10：`export --format qrcode` → 扫码 → 导入 → 握手 → 外网）；手机档 iPhone 未验（流程同源） | `artifacts/d4-ios/`、`artifacts/v0.10-mobile/` |
 
-注：中国区 App Store 已下架 WireGuard，需港区/日区/美区账号（免费 App 付款方式选"无"可注册）；详见 SKILL.md iOS 节。
+注：中国区 App Store 已下架 WireGuard，需港区/日区/美区账号（免费 App 付款方式选"无"可注册）；详见 SKILL.md iOS 节。D4 零伴侣轨道的完整导出（`--include-private-key`）与二维码（`--format qrcode`）自 2026-11-23 起为永久版/家庭版权益（`export_private`）；脱敏导出（`--format wireguard`，无私钥）保持免费。
 
 ## 5. 明确不承诺清单
 

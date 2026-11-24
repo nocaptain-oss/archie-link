@@ -1,6 +1,6 @@
 import { bundleManager, common, Want } from '@kit.AbilityKit';
 import { display } from '@kit.ArkUI';
-import { BusinessError } from '@kit.BasicServicesKit';
+import { BusinessError, pasteboard } from '@kit.BasicServicesKit';
 import { fileIo, picker } from '@kit.CoreFileKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { connection, http, vpnExtension } from '@kit.NetworkKit';
@@ -90,6 +90,7 @@ struct Index {
   private publicKey: string = '';
   private presharedKey: string = '';
   private allowedIPs: string = '0.0.0.0/0';
+  private tunnelMtu: number = 0;
 
   aboutToAppear(): void {
     try {
@@ -459,18 +460,32 @@ struct Index {
               .alignItems(HorizontalAlign.Start)
               .layoutWeight(1)
 
-              Button('导入配置')
-                .height(32)
-                .padding({ left: 13, right: 13 })
-                .fontSize(12.5)
-                .fontWeight(FontWeight.Medium)
-                .fontColor('#0a1513')
-                .backgroundColor('#ffffff')
-                .border({ width: 1, color: '#d3ded9' })
-                .borderRadius(12)
-                .onClick((): void => {
-                  this.importConfig();
-                })
+              Row({ space: 8 }) {
+                Button('导入配置')
+                  .height(32)
+                  .padding({ left: 13, right: 13 })
+                  .fontSize(12.5)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor('#0a1513')
+                  .backgroundColor('#ffffff')
+                  .border({ width: 1, color: '#d3ded9' })
+                  .borderRadius(12)
+                  .onClick((): void => {
+                    this.importConfig();
+                  })
+                Button('粘贴导入')
+                  .height(32)
+                  .padding({ left: 13, right: 13 })
+                  .fontSize(12.5)
+                  .fontWeight(FontWeight.Medium)
+                  .fontColor('#0a1513')
+                  .backgroundColor('#ffffff')
+                  .border({ width: 1, color: '#d3ded9' })
+                  .borderRadius(12)
+                  .onClick((): void => {
+                    this.importFromClipboard();
+                  })
+              }
             }
             .width('100%')
             .height(78)
@@ -1094,6 +1109,28 @@ struct Index {
     }
   }
 
+  private async importFromClipboard(): Promise<void> {
+    try {
+      const systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
+      const data: pasteboard.PasteData = await systemPasteboard.getData();
+      const text: string = data.getPrimaryText();
+      if (!text || text.trim().length === 0) {
+        this.detail = '剪贴板没有可导入的配置文本。';
+        return;
+      }
+      const config = parseWgConfig(text.trim());
+      if (config.error) {
+        this.detail = config.error;
+        return;
+      }
+      this.persistRawConfig(text.trim());
+      this.applyConfig(config);
+      this.detail = `粘贴导入成功 · ${config.serverHost}:${config.serverPort} · ${config.clientAddress}`;
+    } catch (error) {
+      this.detail = this.errorMessage(error);
+    }
+  }
+
   private loadStoredConfig(): void {
     try {
       const context = this.getUIContext().getHostContext() as common.UIAbilityContext;
@@ -1135,6 +1172,7 @@ struct Index {
     this.publicKey = config.publicKey ?? '';
     this.presharedKey = config.presharedKey ?? '';
     this.allowedIPs = config.allowedIPs ?? '0.0.0.0/0';
+    this.tunnelMtu = config.mtu ?? 0;
     this.configured = this.privateKey.length > 0 && this.publicKey.length > 0;
   }
 
@@ -1166,7 +1204,8 @@ struct Index {
           privateKey: this.privateKey,
           publicKey: this.publicKey,
           presharedKey: this.presharedKey,
-          allowedIPs: this.allowedIPs
+          allowedIPs: this.allowedIPs,
+          tunnelMtu: this.tunnelMtu
         }
       };
       await vpnExtension.startVpnExtensionAbility(want);

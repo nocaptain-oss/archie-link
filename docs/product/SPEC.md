@@ -74,12 +74,12 @@ Android TV、Google TV、国内 Android 电视和 HarmonyOS 智慧屏用户希�
 
 | 项目 | 决策 |
 |---|---|
-| 免费层 | 只读诊断、风险解释、配置预览和引导 |
-| SkillHub 付费单位 | 一次“安全激活/修复任务”，不按每次连接收费 |
-| 个人永久版 | 1 名个人、2 台自有设备；当前大版本永久使用；12 个月更新与支持 |
-| 家庭年度订阅 | 每个订阅年度最多绑定 12 台不同设备，最多 12 台同时激活 |
+| 免费层 | 只读诊断、风险解释、配置预览、脱敏配置导出和引导 |
+| 按次付费单位 | 一次“安全激活/修复任务”（19.90 CNY），不按每次连接收费；执行窗口 14 天（7 天租约 + 7 天离线宽限），自激活（核销）时起算；1 台设备，不自动续费；未核销次数余额不设过期 |
+| 个人永久版 | 1 名个人、2 台自有设备；当前大版本永久使用；12 个月更新与支持（199.00 CNY） |
+| 家庭年度订阅 | 每个订阅年度最多绑定 12 台不同设备，最多 12 台同时激活（69.00 CNY/年，2026-11-23 定稿） |
 | 不售卖 | WARP 免费额度、带宽、固定 IP、匿名性 |
-| 支付入口 | SkillHub Pay Skill 或平台托管支付页 |
+| 支付入口 | 三产品统一走支付宝 aipay「AI网页应用收款」（`alipay.trade.page.pay`，个人收款场景）；现有 Machine Pay 402 流程降级为兼容通道 |
 | 支付数据 | Skill 不保存支付密码、商户私钥或原始支付凭证 |
 | 高价值操作 | 登录、支付、API Key 创建不得通过 WARP 隧道路由 |
 | 合规前置 | 上架前核对 Cloudflare WARP 商业使用条款和 SkillHub 审核规则 |
@@ -152,7 +152,7 @@ D-track 是独立的开发者辅助交付轨道，不占用 V0.x 消费者版本
 | D3 | HarmonyOS 手机/平板/PC/智慧屏 | 能安装签名调试 HAP 并信任 VPN 的用户 | 条件内测 |
 | D4 | iOS | 能安装 App Store 应用并完成配置导入的 iPhone/iPad 用户 | 重定义：零伴侣轨道 |
 
-2026-11-18 决定：D4 改为零伴侣轨道。不自研 iOS 伴侣，宿主导出脱敏/完整 WireGuard 配置（`export --format wireguard`，后续补二维码），用户从 App Store 安装官方 WireGuard App（免费、自带 Network Extension 权限）后导入并完成系统 VPN 授权。已排除的自研替代路线：GitHub 开源 + agent 引导构建侧载——`NEPacketTunnelProvider` entitlement 只发给付费 Apple Developer Program（约 ¥688/年），免费 Apple ID 侧载无法启用该 entitlement 且签名 7 天过期、限 3 个应用，"绕开 Apple 开发者账户自研伴侣"技术上不可行。零伴侣轨道不提供桥 RPC、逐应用分流（iOS 仅 MDM 可做 per-app VPN）和远程状态；若未来因 macOS Developer ID 签名购入付费账号，可另行评估恢复自研伴侣轨道。
+2026-11-18 决定：D4 改为零伴侣轨道。不自研 iOS 伴侣，宿主导出脱敏/完整 WireGuard 配置（`export --format wireguard`，后续补二维码），用户从 App Store 安装官方 WireGuard App（免费、自带 Network Extension 权限）后导入并完成系统 VPN 授权。2026-11-23 决定：零伴侣轨道的完整导出（`--include-private-key`）与二维码（`--format qrcode`）为永久版/家庭版权益（`export_private`），脱敏导出保持免费。已排除的自研替代路线：GitHub 开源 + agent 引导构建侧载——`NEPacketTunnelProvider` entitlement 只发给付费 Apple Developer Program（约 ¥688/年），免费 Apple ID 侧载无法启用该 entitlement 且签名 7 天过期、限 3 个应用，"绕开 Apple 开发者账户自研伴侣"技术上不可行。零伴侣轨道不提供桥 RPC、逐应用分流（iOS 仅 MDM 可做 per-app VPN）和远程状态；若未来因 macOS Developer ID 签名购入付费账号，可另行评估恢复自研伴侣轨道。
 
 Host 只负责设备发现、安装、启动和语义化控制，不接管目标设备网络。VPN 必须由设备端伴侣应用和系统 VPN API 建立，用户必须完成系统授权。
 
@@ -206,7 +206,8 @@ Host 只负责设备发现、安装、启动和语义化控制，不接管目标
 
 所有会改变网络状态的命令必须经过 `EntitlementProvider`：
 
-- 未授权：只允许 `detect`、`plan`、`doctor`、`export`
+- 未授权：只允许 `detect`、`plan`、`doctor`、脱敏 `export`（`--format wireguard` 不带 `--include-private-key`）
+- 完整导出（`--include-private-key`）与二维码（`--format qrcode`）需要租约含 `export_private` 权益（永久版/家庭版签发；按次与免费用户不签发）
 - 已授权：允许 `up`、`down`、`status`
 - 授权过期：停止新的 `up`，但保留 `down` 和 `rollback`
 
@@ -290,6 +291,7 @@ V0.3 的测试授权只存在于 `licensetest` 构建。V0.4 正式授权必须�
 - 默认遮盖私钥，只有显式 `--include-private-key` 才输出
 - 含私钥的完整导出必须落盘到显式指定的文件：`--include-private-key` 必须与 `--output <path>` 同用，文件以 0600 权限创建，已存在文件拒绝覆盖；完整配置不得经 stdout、`--json` 或管道输出（Agent stdout 等同日志，私钥不得进入）
 - 传输通道由用户选择（AirDrop / 文件 / 二维码），不进入日志和云端
+- 完整导出（`--include-private-key`）与二维码（`--format qrcode`）为永久版/家庭版付费权益：租约必须含 `export_private` feature，未授权时退出码 4（`entitlement_failed`）；脱敏导出（默认 wireguard 格式，无私钥）保持免费；门禁为摩擦型，不锁定用户磁盘上的配置文件本身
 - 移动端二维码（V0.10）：`export --format qrcode` 生成 PNG 二维码文件，内容为完整配置（含私钥），供官方 WireGuard App 扫码导入；必须与 `--output <path>` 同用，文件以 0600 权限创建，已存在文件拒绝覆盖；二维码不得经 stdout、`--json` 或管道输出（二维码编码含私钥的完整配置，与文本完整导出同规则）；无 `--output` 时参数错误退出
 
 ### FR-012 Agent 降级
@@ -376,6 +378,21 @@ V1.0 前不重做完整浏览器。V1.1 再交付遥控器专用地址栏、搜�
 
 开发者辅助路径不适用于不愿开启调试模式或无法完成设备端确认的用户；此类用户继续使用 `guided` 配置导出和官方客户端导入。
 
+### FR-018 统一收款通道
+
+三产品（按次 / 个人永久版 / 家庭年度）统一经支付宝 aipay Vibe Pay「即刻收」直连模式（`alipay.aipay.nowpaydirect.*`，个人收款场景）收款（2026-11-24 拍板切换）：
+
+- 商品与价格在支付宝「即刻收」管理小程序配置（三个 `out_product_id`），控制面经环境变量绑定 plan → `out_product_id`；价格不由客户端传入
+- `archielink buy <plan>`：向控制面 `POST /v1/pay/page-intent` 下单（plan ∈ `activation-task` / `perpetual` / `family-annual-12`，路径兼容保留），按收费模式获取购买入口：
+  - 按次（次数包 `QUANTITY`/COUNT）：`purchase.create` 生成购买链接，下单时基线余额记录在订单；支付确认以 `quota.query` 余额超过基线 + `quota.verify` 核销 1 次（幂等消费请求号）为准；14 天执行窗口自核销起算，未核销余额不设过期
+  - 个人永久版（永久买断 `ONE_TIME`）与家庭年度（时长包 `ONE_TIME_DURATION`，周期 YEAR）：`purchase.consult` 查询访问决策；`PURCHASE_REQUIRED` 返回购买入口，`ALLOW` 视为已持有权益（幂等下单直接落账）
+- CLI 在终端直接渲染购买二维码（`purchase_qr_code` 优先，缺省用 `purchase_url` 生成），用户手机支付宝扫码支付，无需跳转浏览器；购买链接保留为后备展示
+- 支付确认由 CLI 轮询驱动（服务端 consult / quota 查询），无异步通知依赖；`external_buyer_id` 使用客户端 InstallID
+- 退款与撤销：权益由支付宝托管，平台退款/拒付/撤销事件后授权停止续租；管理员退款通道保留
+- 原 `alipay.trade.page.pay` 通道（`FAST_INSTANT_TRADE_PAY`）代码保留为后备；「电脑网站支付」签约已提交（2026-11-24 SUBMITTED 等待生效），生效前不可用（2026-11-24 线上 40006 `isv.insufficient-isv-permissions` 现场）
+- 现有 Machine Pay 402 流程（`lease pay-intent`，服务单价上限 50 CNY）保留为兼容通道，新购买引导统一走 `buy`
+- 支付宝 AI 付款产品准入对比（2026-11-23 调研，2026-11-24 补充）：Machine Pay 服务注册单价硬上限 ¥50，无法承载 ¥69/¥199；PC Agent Pay 为买家侧产品，数字资源商家侧绕回 Machine Pay；SkillPay 无商家 webhook，无法自动签发租约；Token Pay 仅限企业账号；即刻收直连三种收费模式（买断/时长包/次数包）与三产品 1:1 对齐，托管购买页免自建电商页面，权益与核销由支付宝托管。
+
 ## 7. CLI 契约
 
 ```text
@@ -387,8 +404,13 @@ archielink up --yes [--json]
 archielink down [--json]
 archielink status [--json]
 archielink rollback [--json]
-archielink export --format wireguard [--include-private-key --output <path>] [--json]
-archielink export --format qrcode --output <path>
+archielink export --format wireguard [--include-private-key --output <path>] [--json]   # --include-private-key 需租约含 export_private（永久/家庭）
+archielink export --format qrcode --output <path>    # 需租约含 export_private（永久/家庭）
+archielink buy <plan> [--server <url>] [--request-id <id>] [--timeout <dur>] [--json]  # plan: activation-task | perpetual | family-annual-12
+archielink lease identity [--json]
+archielink lease pay-intent --request-id <id> --plan activation-task [--server <url>] [--json]
+archielink lease activate --order <id> [--server <url>] [--json]
+archielink lease status [--json]
 archielink device discover [--tool adb|hdc|auto] [--json]
 archielink device install --serial <serial> --package <path> --yes [--json]
 archielink device pair --serial <serial> --yes [--json]
@@ -568,7 +590,7 @@ V0.4 租约还必须包含：
 - 支付通知必须验签、幂等并防重放。
 - 退款/拒付后停止续租，但保留 `down` 和 `rollback`。
 - 发布包必须签名、公证、可复现并附 SHA-256/SBOM。
-- SkillHub Pay API、回调、退款和撤销行为必须取得官方文档并完成沙箱验证。
+- aipay「AI网页应用收款」API、异步通知验签、退款和撤销行为必须取得官方文档并完成沙箱与线上验证；Machine Pay 402 兼容通道维持既有验证。
 
 ### 12.4 家庭年度订阅
 

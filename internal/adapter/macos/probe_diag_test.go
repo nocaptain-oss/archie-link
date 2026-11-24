@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -50,6 +51,17 @@ func TestDiagProbeAllCandidates(t *testing.T) {
 		{"188.114.97.1", 2408},
 		{"162.159.192.1", 4500},
 		{"162.159.192.1", 1701},
+	}
+	if custom := os.Getenv("ARCHIE_LINK_DIAG_ENDPOINT"); custom != "" {
+		host, portStr, err := net.SplitHostPort(custom)
+		if err != nil {
+			t.Fatalf("ARCHIE_LINK_DIAG_ENDPOINT %q: %v", custom, err)
+		}
+		port, err := strconv.Atoi(portStr)
+		if err != nil {
+			t.Fatalf("ARCHIE_LINK_DIAG_ENDPOINT %q: bad port: %v", custom, err)
+		}
+		candidates = []candidate{{host, port}}
 	}
 	anyOK := false
 	for _, c := range candidates {

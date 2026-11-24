@@ -15,6 +15,7 @@ import {
   readU32,
   writeU32
 } from '../wireguard/tunnel/Handshake';
+import { DEFAULT_MTU } from '../wireguard/Constants';
 
 const DOMAIN = 0x4103;
 const TAG = 'ArchieLinkVPN';
@@ -134,6 +135,7 @@ export default class VpnAbility extends VpnExtensionAbility {
     this.publicKey = String(params?.['publicKey'] ?? '');
     this.presharedKey = String(params?.['presharedKey'] ?? '');
     const allowedIPs = String(params?.['allowedIPs'] ?? '0.0.0.0/0');
+    const tunnelMtu = Number(params?.['tunnelMtu'] ?? 0);
     if (!validIPv4(this.serverIP) || this.serverPort < 1 || this.serverPort > 65535 ||
       !validIPv4(clientAddress) || clientPrefixLength < 0 || clientPrefixLength > 32 ||
       this.privateKey.length === 0 || this.publicKey.length === 0) {
@@ -146,7 +148,8 @@ export default class VpnAbility extends VpnExtensionAbility {
       clientAddress,
       clientPrefixLength,
       dnsServer,
-      allowedIPs
+      allowedIPs,
+      tunnelMtu
     ).catch((error: Object): void => {
       const businessError = error as BusinessError;
       const message = this.errorMessage(error);
@@ -178,7 +181,8 @@ export default class VpnAbility extends VpnExtensionAbility {
     clientAddress: string,
     clientPrefixLength: number,
     dnsServer: string,
-    allowedIPs: string
+    allowedIPs: string,
+    tunnelMtu: number
   ): Promise<void> {
     this.running = true;
     writeVpnState(this.context, 'preparing', '正在创建 HarmonyOS VPN 接口。');
@@ -186,6 +190,7 @@ export default class VpnAbility extends VpnExtensionAbility {
     if (selectedApps.length === 0) {
       throw new Error('请先在设置中添加需要通过 VPN 的应用');
     }
+    const effectiveMtu = tunnelMtu >= 68 && tunnelMtu <= 1500 ? tunnelMtu : DEFAULT_MTU;
     const containerMode = selectedApps.some((bundle: string): boolean =>
       CONTAINER_BUNDLES.includes(bundle)
     );
@@ -198,7 +203,7 @@ export default class VpnAbility extends VpnExtensionAbility {
       }],
       routes: this.buildRoutes(allowedIPs),
       dnsAddresses: dnsServer.length > 0 ? [dnsServer] : [],
-      mtu: 1500,
+      mtu: effectiveMtu,
       isIPv4Accepted: true,
       isIPv6Accepted: false
     };

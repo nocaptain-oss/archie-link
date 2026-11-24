@@ -224,6 +224,146 @@ func handleActivationIntent(payment *PaymentService) http.HandlerFunc {
 	}
 }
 
+func handlePageIntent(pay *PagePayService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		var request PageIntentRequest
+		if !decodeBody(w, r, &request) {
+			return
+		}
+		intent, err := pay.Begin(r.Context(), request)
+		if err != nil {
+			writePagePayError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, intent)
+	}
+}
+
+func handlePageCheckout(pay *PagePayService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		intent, err := pay.Checkout(r.PathValue("id"))
+		if err != nil {
+			writePagePayError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, intent)
+	}
+}
+
+func handlePageStatus(pay *PagePayService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		intent, err := pay.Status(r.Context(), r.PathValue("id"))
+		if err != nil {
+			writePagePayError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, intent)
+	}
+}
+
+// handlePageNotify 接收支付宝异步通知（表单 POST）。
+// 支付宝按响应体是否为 "success" 决定是否重试；任何错误都返回 "failure"。
+func handlePageNotify(pay *PagePayService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := r.ParseForm(); err != nil {
+			w.Write([]byte("failure"))
+			return
+		}
+		if err := pay.Notify(r.Context(), r.PostForm); err != nil {
+			w.Write([]byte("failure"))
+			return
+		}
+		w.Write([]byte("success"))
+	}
+}
+
+func handleNowPayIntent(pay *NowPayService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		var request PageIntentRequest
+		if !decodeBody(w, r, &request) {
+			return
+		}
+		intent, err := pay.Begin(r.Context(), request)
+		if err != nil {
+			writeNowPayError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, intent)
+	}
+}
+
+func handleNowPayCheckout(pay *NowPayService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		intent, err := pay.Checkout(r.Context(), r.PathValue("id"))
+		if err != nil {
+			writeNowPayError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, intent)
+	}
+}
+
+func handleNowPayStatus(pay *NowPayService) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		intent, err := pay.Status(r.Context(), r.PathValue("id"))
+		if err != nil {
+			writeNowPayError(w, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, intent)
+	}
+}
+
+func writeNowPayError(w http.ResponseWriter, err error) {
+	status := http.StatusInternalServerError
+	switch {
+	case errors.Is(err, ErrNowPayInvalid), errors.Is(err, ErrNowPayConflict),
+		errors.Is(err, ErrPagePayInvalid), errors.Is(err, ErrPagePayConflict),
+		errors.Is(err, ErrPlanUnknown), errors.Is(err, ErrNowPayProductNotSold):
+		status = http.StatusBadRequest
+	case errors.Is(err, ErrOrderNotFound):
+		status = http.StatusNotFound
+	case errors.Is(err, ErrPaymentIntentExpired):
+		status = http.StatusGone
+	case errors.Is(err, ErrNowPayDenied):
+		status = http.StatusConflict
+	case errors.Is(err, ErrNowPayNotConfigured):
+		status = http.StatusNotImplemented
+	case errors.Is(err, aipay.ErrGateway), errors.Is(err, aipay.ErrNotConfigured):
+		status = http.StatusBadGateway
+	case errors.Is(err, aipay.ErrNowPayQuotaInsufficient):
+		status = http.StatusConflict
+	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
+		status = http.StatusGatewayTimeout
+	}
+	writeJSON(w, status, map[string]any{"error": err.Error()})
+}
+
+func writePagePayError(w http.ResponseWriter, err error) {
+	status := http.StatusInternalServerError
+	switch {
+	case errors.Is(err, ErrPagePayInvalid), errors.Is(err, ErrPagePayConflict), errors.Is(err, ErrPlanUnknown):
+		status = http.StatusBadRequest
+	case errors.Is(err, ErrOrderNotFound):
+		status = http.StatusNotFound
+	case errors.Is(err, ErrPaymentIntentExpired):
+		status = http.StatusGone
+	case errors.Is(err, ErrPagePayMismatch), errors.Is(err, ErrPaymentTradeReused):
+		status = http.StatusConflict
+	case errors.Is(err, aipay.ErrGateway), errors.Is(err, aipay.ErrNotConfigured):
+		status = http.StatusBadGateway
+	case errors.Is(err, context.Canceled), errors.Is(err, context.DeadlineExceeded):
+		status = http.StatusGatewayTimeout
+	}
+	writeJSON(w, status, map[string]any{"error": err.Error()})
+}
+
 func activationResource(grant ActivationGrant) map[string]any {
 	return map[string]any{
 		"resource_id": grant.ResourceID,

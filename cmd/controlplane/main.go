@@ -8,6 +8,7 @@
 //	ARCHIE_LINK_CP_API_TOKEN       订单/epoch API bearer token
 //	ARCHIE_LINK_CP_ADMIN_TOKEN     退款/拒付/设备管理 admin bearer token
 //	ARCHIE_LINK_PAY_*              SkillHub Pay / 支付宝 AI 按量付费配置
+//	ARCHIE_LINK_PAGE_PAY_*         统一收款（alipay.trade.page.pay）配置
 //	ARCHIE_LINK_CP_ADDR            监听地址（默认 127.0.0.1:8790）
 //	ARCHIE_LINK_CP_STATE           状态文件（默认 /var/lib/archielink-controlplane/state.json）
 //
@@ -60,12 +61,22 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	pagePay, err := newPagePayService(service)
+	if err != nil {
+		log.Fatal(err)
+	}
+	nowPay, err := newNowPayService(service)
+	if err != nil {
+		log.Fatal(err)
+	}
 	handler, err := controlplane.NewHandler(service, controlplane.HandlerConfig{
 		APIToken:   apiToken,
 		AdminToken: adminToken,
 		Limiter:    controlplane.NewRateLimiter(60, 20),
 		TrustProxy: true,
 		Payment:    payment,
+		PagePay:    pagePay,
+		NowPay:     nowPay,
 	})
 	if err != nil {
 		log.Fatal(err)
@@ -163,4 +174,137 @@ func newPaymentService(service *controlplane.Service) (*controlplane.PaymentServ
 	}
 	log.Printf("SkillHub Pay enabled (production=%t, service_id=%s)", production, serviceID)
 	return payment, nil
+}
+
+// newPagePayService 装配三产品统一收款（aipay「AI网页应用收款」，
+// alipay.trade.page.pay）。凭据复用 ARCHIE_LINK_PAY_* 的同一支付宝应用；
+// ARCHIE_LINK_PAGE_PAY_NOTIFY_URL 与 RETURN_URL 均未配置时整块禁用。
+func newPagePayService(service *controlplane.Service) (*controlplane.PagePayService, error) {
+	notifyURL := strings.TrimSpace(os.Getenv("ARCHIE_LINK_PAGE_PAY_NOTIFY_URL"))
+	returnURL := strings.TrimSpace(os.Getenv("ARCHIE_LINK_PAGE_PAY_RETURN_URL"))
+	appID := strings.TrimSpace(os.Getenv("ARCHIE_LINK_PAY_APP_ID"))
+	privateKey := strings.TrimSpace(os.Getenv("ARCHIE_LINK_PAY_PRIVATE_KEY"))
+	alipayPublicKey := strings.TrimSpace(os.Getenv("ARCHIE_LINK_PAY_ALIPAY_PUBLIC_KEY"))
+	if notifyURL == "" && returnURL == "" && appID == "" {
+		log.Printf("page pay disabled: ARCHIE_LINK_PAGE_PAY_* is not configured")
+		return nil, nil
+	}
+	if notifyURL == "" || returnURL == "" {
+		return nil, errors.New("ARCHIE_LINK_PAGE_PAY_NOTIFY_URL and ARCHIE_LINK_PAGE_PAY_RETURN_URL must be configured together")
+	}
+	if appID == "" || privateKey == "" || alipayPublicKey == "" {
+		return nil, errors.New("page pay requires ARCHIE_LINK_PAY_APP_ID, ARCHIE_LINK_PAY_PRIVATE_KEY and ARCHIE_LINK_PAY_ALIPAY_PUBLIC_KEY")
+	}
+	production := false
+	if value := strings.TrimSpace(os.Getenv("ARCHIE_LINK_PAY_PRODUCTION")); value != "" {
+		parsed, err := strconv.ParseBool(value)
+		if err != nil {
+			return nil, errors.New("ARCHIE_LINK_PAY_PRODUCTION must be true, false, 1 or 0")
+		}
+		production = parsed
+	}
+	gateway := strings.TrimSpace(os.Getenv("ARCHIE_LINK_PAY_GATEWAY"))
+	if gateway == "" {
+		if production {
+			gateway = "https://openapi.alipay.com/gateway.do"
+		} else {
+			gateway = "https://openapi-sandbox.dl.alipaydev.com/gateway.do"
+		}
+	}
+	client, err := aipay.New(aipay.Config{
+		AppID:           appID,
+		PrivateKey:      privateKey,
+		AlipayPublicKey: alipayPublicKey,
+		Gateway:         gateway,
+		Production:      production,
+	})
+	if err != nil {
+		return nil, err
+	}
+	window := 30 * time.Minute
+	if value := strings.TrimSpace(os.Getenv("ARCHIE_LINK_PAGE_PAY_WINDOW")); value != "" {
+		parsed, err := time.ParseDuration(value)
+		if err != nil || parsed <= 0 || parsed > 2*time.Hour {
+			return nil, errors.New("ARCHIE_LINK_PAGE_PAY_WINDOW must be a duration no longer than 2h")
+		}
+		window = parsed
+	}
+	pagePay, err := controlplane.NewPagePayService(service, client, controlplane.PagePayConfig{
+		AppID: appID, NotifyURL: notifyURL, ReturnURL: returnURL, PayWindow: window,
+	})
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("page pay enabled (production=%t, window=%s)", production, window)
+	return pagePay, nil
+}
+
+// newNowPayService 装配三产品统一收款（Vibe Pay「即刻收」直连模式，
+// alipay.aipay.nowpaydirect.*）。凭据复用 ARCHIE_LINK_PAY_* 的同一支付宝
+// 应用；三个 ARCHIE_LINK_NOWPAY_*_PRODUCT_ID 均未配置时整块禁用。
+func newNowPayService(service *controlplane.Service) (*controlplane.NowPayService, error) {
+	products := map[string]string{
+		"activation-task":  strings.TrimSpace(os.Getenv("ARCHIE_LINK_NOWPAY_ACTIVATION_PRODUCT_ID")),
+		"perpetual":        strings.TrimSpace(os.Getenv("ARCHIE_LINK_NOWPAY_PERPETUAL_PRODUCT_ID")),
+		"family-annual-12": strings.TrimSpace(os.Getenv("ARCHIE_LINK_NOWPAY_FAMILY_PRODUCT_ID")),
+	}
+	configured := false
+	for _, productID := range products {
+		if productID != "" {
+			configured = true
+		}
+	}
+	appID := strings.TrimSpace(os.Getenv("ARCHIE_LINK_PAY_APP_ID"))
+	privateKey := strings.TrimSpace(os.Getenv("ARCHIE_LINK_PAY_PRIVATE_KEY"))
+	alipayPublicKey := strings.TrimSpace(os.Getenv("ARCHIE_LINK_PAY_ALIPAY_PUBLIC_KEY"))
+	if !configured {
+		log.Printf("now pay disabled: ARCHIE_LINK_NOWPAY_*_PRODUCT_ID is not configured")
+		return nil, nil
+	}
+	if appID == "" || privateKey == "" || alipayPublicKey == "" {
+		return nil, errors.New("now pay requires ARCHIE_LINK_PAY_APP_ID, ARCHIE_LINK_PAY_PRIVATE_KEY and ARCHIE_LINK_PAY_ALIPAY_PUBLIC_KEY")
+	}
+	production := false
+	if value := strings.TrimSpace(os.Getenv("ARCHIE_LINK_PAY_PRODUCTION")); value != "" {
+		parsed, err := strconv.ParseBool(value)
+		if err != nil {
+			return nil, errors.New("ARCHIE_LINK_PAY_PRODUCTION must be true, false, 1 or 0")
+		}
+		production = parsed
+	}
+	gateway := strings.TrimSpace(os.Getenv("ARCHIE_LINK_PAY_GATEWAY"))
+	if gateway == "" {
+		if production {
+			gateway = "https://openapi.alipay.com/gateway.do"
+		} else {
+			gateway = "https://openapi-sandbox.dl.alipaydev.com/gateway.do"
+		}
+	}
+	client, err := aipay.New(aipay.Config{
+		AppID:           appID,
+		PrivateKey:      privateKey,
+		AlipayPublicKey: alipayPublicKey,
+		Gateway:         gateway,
+		Production:      production,
+	})
+	if err != nil {
+		return nil, err
+	}
+	window := 30 * time.Minute
+	if value := strings.TrimSpace(os.Getenv("ARCHIE_LINK_NOWPAY_WINDOW")); value != "" {
+		parsed, err := time.ParseDuration(value)
+		if err != nil || parsed <= 0 || parsed > 2*time.Hour {
+			return nil, errors.New("ARCHIE_LINK_NOWPAY_WINDOW must be a duration no longer than 2h")
+		}
+		window = parsed
+	}
+	nowPay, err := controlplane.NewNowPayService(service, client, controlplane.NowPayConfig{
+		Products: products, CallbackURL: strings.TrimSpace(os.Getenv("ARCHIE_LINK_NOWPAY_CALLBACK_URL")),
+		PayWindow: window,
+	})
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("now pay enabled (production=%t, products=%d, window=%s)", production, len(products), window)
+	return nowPay, nil
 }

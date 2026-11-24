@@ -1,14 +1,38 @@
 package cli
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"os"
 	"strings"
 
+	"github.com/nocaptain-oss/archie-link/internal/entitlement"
 	wireguardexport "github.com/nocaptain-oss/archie-link/internal/export"
 )
+
+// exportPrivateFeature 是完整导出（--include-private-key）/二维码（--format
+// qrcode）所需的租约权益：仅 perpetual / family-annual-12 计划签发。
+// 脱敏导出（默认 wireguard 格式，无私钥）保持免费。
+const exportPrivateFeature = "export_private"
+
+// requireExportPrivate 是完整导出/二维码的摩擦门禁（exit 4）。
+// 门禁只挡 CLI/agent 便利路径，不锁定用户磁盘上的配置文件本身。
+func requireExportPrivate(deps Dependencies, stdout, stderr io.Writer, jsonOutput bool) int {
+	if deps.Lifecycle == nil || deps.Lifecycle.Entitlement == nil {
+		return writeLifecycleError(stdout, stderr, jsonOutput, 4, "entitlement_failed",
+			errors.New("full export and QR export are paid entitlements (export_private, perpetual/family plans); run `archielink buy perpetual` or `archielink lease status`"))
+	}
+	if _, err := deps.Lifecycle.Entitlement.Verify(context.Background(), entitlement.Request{
+		SkillID:   entitlement.SkillID,
+		InstallID: deps.Lifecycle.InstallID,
+		Feature:   exportPrivateFeature,
+	}); err != nil {
+		return writeLifecycleError(stdout, stderr, jsonOutput, 4, "entitlement_failed", err)
+	}
+	return 0
+}
 
 func runExport(args []string, stdout, stderr io.Writer, deps Dependencies) int {
 	format := ""
@@ -54,6 +78,11 @@ func runExport(args []string, stdout, stderr io.Writer, deps Dependencies) int {
 	if includePrivate && outputPath == "" {
 		fmt.Fprintln(stderr, "--include-private-key requires --output <path>: full config must be written to a file, not stdout")
 		return 2
+	}
+	if includePrivate {
+		if code := requireExportPrivate(deps, stdout, stderr, jsonOutput); code != 0 {
+			return code
+		}
 	}
 	if deps.Lifecycle == nil {
 		return writeLifecycleError(stdout, stderr, jsonOutput, 5, "config_not_configured",
@@ -113,6 +142,9 @@ func runExportQrcode(jsonOutput, includePrivate bool, outputPath string, deps De
 	if outputPath == "" {
 		fmt.Fprintln(stderr, "--format qrcode requires --output <path>: the QR PNG must be written to a file, not stdout")
 		return 2
+	}
+	if code := requireExportPrivate(deps, stdout, stderr, false); code != 0 {
+		return code
 	}
 	if deps.Lifecycle == nil {
 		return writeLifecycleError(stdout, stderr, false, 5, "config_not_configured",

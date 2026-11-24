@@ -28,6 +28,8 @@ export interface WgParsedConfig {
   allowedIPs?: string;
   /** PresharedKey */
   presharedKey?: string;
+  /** Interface MTU（68-1500 内有效，未配置时缺省） */
+  mtu?: number;
   /** 原始解析错误 */
   error?: string;
 }
@@ -97,9 +99,13 @@ export function parseWgConfig(content: string): WgParsedConfig {
         case 'privatekey':
           result.privateKey = value;
           break;
-        case 'mtu':
-          // 可以扩展：暂不处理 MTU
+        case 'mtu': {
+          const parsedMtu = parseInt(value, 10);
+          if (parsedMtu >= 68 && parsedMtu <= 1500) {
+            result.mtu = parsedMtu;
+          }
           break;
+        }
       }
     } else if (currentSection === 'peer') {
       switch (key) {

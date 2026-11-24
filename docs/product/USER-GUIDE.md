@@ -57,6 +57,12 @@ archielink rollback --json   # 启动失败后的确定性回滚
 ## 5. 授权与付费
 
 ```bash
+# 统一购买入口（三产品，支付宝 aipay 网页收银台）
+archielink buy activation-task --server https://api.uzphoto.com --json   # 按次 ¥19.9
+archielink buy perpetual --server https://api.uzphoto.com --json         # 个人永久版 ¥199
+archielink buy family-annual-12 --server https://api.uzphoto.com --json  # 家庭年度 ¥69/年
+
+# 兼容通道（Machine Pay 402，存量按次）
 archielink lease identity --json
 archielink lease pay-intent --request-id <稳定请求ID> --plan activation-task \
   --server https://api.uzphoto.com --json
@@ -64,8 +70,10 @@ archielink lease activate --order <order_id> --server https://api.uzphoto.com --
 archielink lease status --json
 ```
 
-- 按次激活（`activation-task`，标价 19.90 CNY）：一次付费一次激活，不自动续费；经 SkillHub Pay（支付宝）支付。
-- 家庭年度订阅：12 台设备池（激活限速 3 台/7 天），设备绑定设备密钥，离线宽限 30 天。
+- `buy` 下单后在终端内渲染支付二维码（即刻收 `pay_qr_code`/`pay_url`），用支付宝「扫一扫」扫码完成支付，无需跳出终端打开浏览器；CLI 自动轮询支付状态并在支付完成后走激活流程。扫码不便时也可复制输出的 `alipays://` 链接或 URL 到支付宝打开。
+- 按次激活（`activation-task`，¥19.9）：执行窗口 14 天（7 天租约 + 7 天离线宽限），期内可多次 `up`；1 台设备，不自动续费。
+- 个人永久版（`perpetual`，¥199）：2 台设备，当前大版本永久使用，完整导出/二维码权益（`export_private`）。
+- 家庭年度订阅（`family-annual-12`，¥69/年）：12 台设备池（激活限速 3 台/7 天），设备绑定设备密钥，离线宽限 30 天；完整导出/二维码权益。
 - 付款意图绑定你的安装 ID 与设备公钥；**不要在不同设备复用请求 ID**。
 
 ## 6. 诊断报告
@@ -77,7 +85,7 @@ archielink lease status --json
 ### iOS / iPadOS（零伴侣轨道）
 
 1. 从 App Store 安装官方 WireGuard App（免费）。**注**：中国区已下架，需港区/日区/美区账号（免费 App 付款方式可选"无"）；App 要求 iOS/iPadOS 15+。
-2. 宿主导出配置（二选一）：
+2. 宿主导出配置（二选一，均需永久版/家庭版权益 `export_private`，未授权退出码 4）：
    - 配置文件：`archielink export --format wireguard --include-private-key --output <路径>`（0600 文件），经 AirDrop/文件 App 传输；
    - 二维码：`archielink export --format qrcode --output <路径>`（PNG，0600），手机端"从二维码创建"扫码。
 3. App 内导入 → 批准 VPN 权限 → 激活 → Safari 验证出口。

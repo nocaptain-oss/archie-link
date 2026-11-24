@@ -8,9 +8,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/nocaptain-oss/archie-link/internal/entitlement"
 	appstate "github.com/nocaptain-oss/archie-link/internal/state"
 )
 
+// exportTestDeps 返回免费层依赖：无 Entitlement，完整导出/二维码应 exit 4。
 func exportTestDeps(t *testing.T) (Dependencies, string) {
 	t.Helper()
 	dir := t.TempDir()
@@ -22,6 +24,26 @@ func exportTestDeps(t *testing.T) (Dependencies, string) {
 		Store:      appstate.Store{Dir: dir},
 		ConfigPath: path,
 	}}, dir
+}
+
+// paidExportTestDeps 返回带 export_private 权益的依赖（永久/家庭版语义）。
+func paidExportTestDeps(t *testing.T) (Dependencies, string) {
+	t.Helper()
+	deps, dir := exportTestDeps(t)
+	deps.Lifecycle.Entitlement = entitlement.NewTestProvider(nil)
+	deps.Lifecycle.InstallID = "test-install"
+	return deps, dir
+}
+
+// taskExportTestDeps 返回只有 network_apply 的按次租约语义：无 export_private。
+func taskExportTestDeps(t *testing.T) (Dependencies, string) {
+	t.Helper()
+	deps, dir := exportTestDeps(t)
+	deps.Lifecycle.Entitlement = entitlement.NewTestProvider(func(e *entitlement.Entitlement) {
+		e.Features = []string{"network_apply"}
+	})
+	deps.Lifecycle.InstallID = "test-install"
+	return deps, dir
 }
 
 func TestExportMasksPrivateKeyByDefault(t *testing.T) {
@@ -66,7 +88,7 @@ func TestExportFullConfigRejectsJSON(t *testing.T) {
 }
 
 func TestExportFullConfigWritesFileWith0600(t *testing.T) {
-	deps, dir := exportTestDeps(t)
+	deps, dir := paidExportTestDeps(t)
 	target := filepath.Join(dir, "export.conf")
 	var stdout, stderr bytes.Buffer
 	code := RunWithDeps([]string{"export", "--format", "wireguard", "--include-private-key", "--output", target}, &stdout, &stderr, deps)
@@ -93,7 +115,7 @@ func TestExportFullConfigWritesFileWith0600(t *testing.T) {
 }
 
 func TestExportRefusesToOverwriteExistingFile(t *testing.T) {
-	deps, dir := exportTestDeps(t)
+	deps, dir := paidExportTestDeps(t)
 	target := filepath.Join(dir, "existing.conf")
 	if err := os.WriteFile(target, []byte("existing"), 0o600); err != nil {
 		t.Fatal(err)
@@ -165,7 +187,7 @@ func TestExportQrcodeRejectsIncludePrivateKey(t *testing.T) {
 }
 
 func TestExportQrcodeWritesPNGWith0600(t *testing.T) {
-	deps, dir := exportTestDeps(t)
+	deps, dir := paidExportTestDeps(t)
 	target := filepath.Join(dir, "qr.png")
 	var stdout, stderr bytes.Buffer
 	code := RunWithDeps([]string{"export", "--format", "qrcode", "--output", target}, &stdout, &stderr, deps)
@@ -192,7 +214,7 @@ func TestExportQrcodeWritesPNGWith0600(t *testing.T) {
 }
 
 func TestExportQrcodeRefusesOverwrite(t *testing.T) {
-	deps, dir := exportTestDeps(t)
+	deps, dir := paidExportTestDeps(t)
 	target := filepath.Join(dir, "existing.png")
 	if err := os.WriteFile(target, []byte("existing"), 0o600); err != nil {
 		t.Fatal(err)
@@ -212,7 +234,7 @@ func TestExportQrcodeRefusesOverwrite(t *testing.T) {
 }
 
 func TestExportQrcodeDecodesToFullConfig(t *testing.T) {
-	deps, dir := exportTestDeps(t)
+	deps, dir := paidExportTestDeps(t)
 	target := filepath.Join(dir, "qr.png")
 	var stdout, stderr bytes.Buffer
 	code := RunWithDeps([]string{"export", "--format", "qrcode", "--output", target}, &stdout, &stderr, deps)
@@ -236,5 +258,83 @@ func TestExportQrcodeDecodesToFullConfig(t *testing.T) {
 	}
 	if !strings.Contains(decoded, "[Interface]") || !strings.Contains(decoded, "[Peer]") {
 		t.Fatalf("decoded QR missing sections: %q", decoded)
+	}
+}
+
+// ---- export_private 门禁行为矩阵 ----
+
+// 免费层（无 Entitlement）：完整导出/二维码 exit 4，脱敏导出免费可用。
+func TestExportFullConfigGateWithoutEntitlement(t *testing.T) {
+	deps, dir := exportTestDeps(t)
+	target := filepath.Join(dir, "full.conf")
+	var stdout, stderr bytes.Buffer
+	code := RunWithDeps([]string{"export", "--format", "wireguard", "--include-private-key", "--output", target}, &stdout, &stderr, deps)
+	if code != 4 || !strings.Contains(stderr.String(), "entitlement_failed") {
+		t.Fatalf("exit=%d stderr=%s", code, stderr.String())
+	}
+	if _, err := os.Stat(target); !os.IsNotExist(err) {
+		t.Fatalf("full config must not be written, err=%v", err)
+	}
+	// 脱敏导出保持免费。
+	code = RunWithDeps([]string{"export", "--format", "wireguard"}, &stdout, &stderr, deps)
+	if code != 0 {
+		t.Fatalf("redacted export must stay free, exit=%d stderr=%s", code, stderr.String())
+	}
+}
+
+func TestExportQrcodeGateWithoutEntitlement(t *testing.T) {
+	deps, dir := exportTestDeps(t)
+	target := filepath.Join(dir, "qr.png")
+	var stdout, stderr bytes.Buffer
+	code := RunWithDeps([]string{"export", "--format", "qrcode", "--output", target}, &stdout, &stderr, deps)
+	if code != 4 || !strings.Contains(stderr.String(), "entitlement_failed") {
+		t.Fatalf("exit=%d stderr=%s", code, stderr.String())
+	}
+	if _, err := os.Stat(target); !os.IsNotExist(err) {
+		t.Fatalf("QR PNG must not be written, err=%v", err)
+	}
+}
+
+// 按次租约（只有 network_apply）：不签发 export_private，exit 4。
+func TestExportFullConfigGateWithActivationTaskLease(t *testing.T) {
+	deps, dir := taskExportTestDeps(t)
+	target := filepath.Join(dir, "full.conf")
+	var stdout, stderr bytes.Buffer
+	code := RunWithDeps([]string{"export", "--format", "wireguard", "--include-private-key", "--output", target}, &stdout, &stderr, deps)
+	if code != 4 {
+		t.Fatalf("activation-task lease must not grant full export, exit=%d stderr=%s", code, stderr.String())
+	}
+	if _, err := os.Stat(target); !os.IsNotExist(err) {
+		t.Fatalf("full config must not be written, err=%v", err)
+	}
+}
+
+func TestExportQrcodeGateWithActivationTaskLease(t *testing.T) {
+	deps, dir := taskExportTestDeps(t)
+	target := filepath.Join(dir, "qr.png")
+	var stdout, stderr bytes.Buffer
+	code := RunWithDeps([]string{"export", "--format", "qrcode", "--output", target}, &stdout, &stderr, deps)
+	if code != 4 {
+		t.Fatalf("activation-task lease must not grant QR export, exit=%d stderr=%s", code, stderr.String())
+	}
+	if _, err := os.Stat(target); !os.IsNotExist(err) {
+		t.Fatalf("QR PNG must not be written, err=%v", err)
+	}
+}
+
+// 门禁在参数校验（exit 2）之后、配置检查（exit 5）之前：
+// 参数错误优先于权益检查。
+func TestExportGateOrderAfterParamValidation(t *testing.T) {
+	deps, _ := exportTestDeps(t)
+	var stdout, stderr bytes.Buffer
+	// --include-private-key 无 --output：exit 2（参数错误优先于门禁）。
+	code := RunWithDeps([]string{"export", "--format", "wireguard", "--include-private-key"}, &stdout, &stderr, deps)
+	if code != 2 || !strings.Contains(stderr.String(), "--output") {
+		t.Fatalf("exit=%d stderr=%s", code, stderr.String())
+	}
+	// 二维码缺 --output：exit 2。
+	code = RunWithDeps([]string{"export", "--format", "qrcode"}, &stdout, &stderr, deps)
+	if code != 2 || !strings.Contains(stderr.String(), "--output") {
+		t.Fatalf("exit=%d stderr=%s", code, stderr.String())
 	}
 }

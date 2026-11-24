@@ -16,7 +16,7 @@ func NewTestProvider(mutate func(*Entitlement)) Provider {
 		SkillID:   "archie-link",
 		LicenseID: "test-license",
 		InstallID: "test-install",
-		Features:  []string{"diagnostics", "network_apply"},
+		Features:  []string{"diagnostics", "network_apply", "export_private"},
 		IssuedAt:  now.Add(-time.Hour),
 		ExpiresAt: now.Add(24 * time.Hour),
 	}

@@ -27,20 +27,19 @@ Explain the observed problem and the proposed change. Start a connection only af
 
 ## Paid activation
 
-SkillHub Pay (Alipay AI usage-based payment). The only paid item is `activation-task` at the displayed price (currently CNY 19.90; no auto-renew — a later task needs a new payment).
+Three products, one unified Alipay web checkout (aipay "AI web app collection"):
+
+| Plan | Price | Entitlement |
+|---|---|---|
+| `activation-task` | CNY 19.90 | 14-day window (7+7 days), 1 device, no auto-renew |
+| `perpetual` | CNY 199 | personal perpetual, 2 devices, `export_private` |
+| `family-annual-12` | CNY 69/year | 12-device family pool, `export_private` |
 
 ```bash
-archielink lease identity --json
-archielink lease pay-intent --request-id <stable-request-id> --plan activation-task --server https://api.uzphoto.com --json
+archielink buy <plan> --request-id <stable-request-id> --server https://api.uzphoto.com --json
 ```
 
-If `payment_needed=true`, delegate the 402 buyer flow to the user's installed official Alipay payment skill against `resource_url` with the returned `request_body`. Never build payment cryptography, ask for the app private key, or pass payment through WARP. If that skill is missing, stop and give the official installation instruction. An expired intent needs a new request ID and a fresh flow. After payment:
-
-```bash
-archielink lease activate --order <order_id> --server https://api.uzphoto.com --json
-```
-
-The paid intent is bound to `install_id` and `device_public_key`; never reuse a request ID across devices.
+Prints a checkout URL (`pay_url`); the user pays in a browser. The CLI polls the order and activates the lease once paid. Never build payment cryptography or pass payment through WARP. Orders bind `install_id` + `device_public_key`; never reuse a request ID across devices. Legacy Machine Pay 402 remains a compatibility channel.
 
 ## Start
 
@@ -92,7 +91,7 @@ archielink down --json
 No bridge RPC, no per-app split tunneling (MDM only), no remote status. The host only exports a config for the official WireGuard App.
 
 1. User installs the official WireGuard App from the App Store (free, ships with Network Extension permission).
-2. Export on explicit request: `archielink export --format wireguard --include-private-key --output <path>` (0600 file), or `archielink export --format qrcode --output <path>` for a PNG (0600) the phone scans via "Create from QR code".
+2. Export on explicit request (needs `export_private`, perpetual/family plans; exit 4 otherwise): `archielink export --format wireguard --include-private-key --output <path>` (0600 file), or `archielink export --format qrcode --output <path>` for a PNG (0600) the phone scans via "Create from QR code".
 3. Move the file via a user-chosen channel (AirDrop / Files) or show the PNG on screen.
 4. In the app: add tunnel from file or QR code → approve the VPN permission prompt → activate → verify the exit IP in Safari.
 
@@ -137,5 +136,5 @@ Rules:
 - Payment, login, identity verification, and account recovery must not route login, payment, or identity verification through WARP.
 - Keep `127.0.0.1`, private LAN ranges, `.local`, and configured local services on their original route; verify the local proxy port and its upstream business endpoint separately.
 - Never print, upload, or commit VPN private keys, tokens, cookies, account IDs, or full configs.
-- `archielink export --format wireguard --json` gives a redacted config. Add `--include-private-key` only on explicit user request, always paired with `--output <path>` (0600 file). `--format qrcode` likewise requires `--output <path>` (PNG, 0600, encodes the private key). Full configs never enter stdout, JSON, logs, or chat.
+- `archielink export --format wireguard --json` gives a redacted config (free). Add `--include-private-key` only on explicit user request, always paired with `--output <path>` (0600 file). `--format qrcode` likewise requires `--output <path>` (PNG, 0600, encodes the private key). Full/QR export needs `export_private` (perpetual/family plans; exit 4 otherwise). Full configs never enter stdout, JSON, logs, or chat.
 - Never claim success from a log line or a READY banner. Require structured JSON and exit code `0`.

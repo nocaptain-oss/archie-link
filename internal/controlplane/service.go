@@ -28,12 +28,13 @@ import (
 )
 
 const (
-	SkillID       = entitlement.SkillID
-	FeatureApply  = "network_apply"
-	LeaseTTL      = 7 * 24 * time.Hour
-	GracePeriod   = 30 * 24 * time.Hour
-	ChallengeTTL  = 5 * time.Minute
-	NotifyMaxSkew = 5 * time.Minute
+	SkillID              = entitlement.SkillID
+	FeatureApply         = "network_apply"
+	FeatureExportPrivate = "export_private"
+	LeaseTTL             = 7 * 24 * time.Hour
+	GracePeriod          = 30 * 24 * time.Hour
+	ChallengeTTL         = 5 * time.Minute
+	NotifyMaxSkew        = 5 * time.Minute
 )
 
 var (
@@ -61,24 +62,39 @@ type Plan struct {
 	MaxNewPer7Days int
 	Amount         string
 	GoodsName      string
-	Renewable      bool
+	// GracePeriod 是该计划的离线宽限期；零值表示使用默认 30 天。
+	// activation-task 为 7 天：7 天租约 + 7 天宽限 = 14 天执行窗口。
+	GracePeriod time.Duration
+	Renewable   bool
+}
+
+// GraceWindow 返回计划的离线宽限期（默认 30 天）。
+func (p Plan) GraceWindow() time.Duration {
+	if p.GracePeriod > 0 {
+		return p.GracePeriod
+	}
+	return GracePeriod
 }
 
 var plans = map[string]Plan{
 	"family-annual-12": {
 		ID:             "family-annual-12",
-		Features:       []string{FeatureApply},
+		Features:       []string{FeatureApply, FeatureExportPrivate},
 		MaxDevices:     12,
 		MaxNewPerYear:  12,
 		MaxNewPer7Days: 3,
+		Amount:         "69.00",
+		GoodsName:      "ArchieLink 家庭年度",
 		Renewable:      true,
 	},
 	"perpetual": {
 		ID:             "perpetual",
-		Features:       []string{FeatureApply},
+		Features:       []string{FeatureApply, FeatureExportPrivate},
 		MaxDevices:     2,
 		MaxNewPerYear:  2,
 		MaxNewPer7Days: 2,
+		Amount:         "199.00",
+		GoodsName:      "ArchieLink 个人永久版",
 		Renewable:      true,
 	},
 	"activation-task": {
@@ -89,6 +105,7 @@ var plans = map[string]Plan{
 		MaxNewPer7Days: 1,
 		Amount:         "19.90",
 		GoodsName:      "ArchieLink 安全激活",
+		GracePeriod:    7 * 24 * time.Hour,
 		Renewable:      false,
 	},
 }
@@ -121,22 +138,24 @@ type Subscription struct {
 }
 
 type Order struct {
-	ID                string    `json:"id"`
-	SubscriptionID    string    `json:"subscription_id"`
-	Plan              string    `json:"plan"`
-	Status            string    `json:"status"` // created / paid / refunded / revoked
-	CreatedAt         time.Time `json:"created_at"`
-	RequestID         string    `json:"request_id,omitempty"`
-	InstallID         string    `json:"install_id,omitempty"`
-	DevicePublicKey   string    `json:"device_public_key,omitempty"`
-	ResourceID        string    `json:"resource_id,omitempty"`
-	Amount            string    `json:"amount,omitempty"`
-	Currency          string    `json:"currency,omitempty"`
-	PayBefore         time.Time `json:"pay_before,omitempty"`
-	ProviderPrePayID  string    `json:"provider_prepay_id,omitempty"`
-	ProviderTradeNo   string    `json:"provider_trade_no,omitempty"`
-	ProofHash         string    `json:"proof_hash,omitempty"`
-	FulfillmentStatus string    `json:"fulfillment_status,omitempty"`
+	ID               string    `json:"id"`
+	SubscriptionID   string    `json:"subscription_id"`
+	Plan             string    `json:"plan"`
+	Status           string    `json:"status"` // created / paid / refunded / revoked
+	CreatedAt        time.Time `json:"created_at"`
+	RequestID        string    `json:"request_id,omitempty"`
+	InstallID        string    `json:"install_id,omitempty"`
+	DevicePublicKey  string    `json:"device_public_key,omitempty"`
+	ResourceID       string    `json:"resource_id,omitempty"`
+	Amount           string    `json:"amount,omitempty"`
+	Currency         string    `json:"currency,omitempty"`
+	PayBefore        time.Time `json:"pay_before,omitempty"`
+	ProviderPrePayID string    `json:"provider_prepay_id,omitempty"`
+	ProviderTradeNo  string    `json:"provider_trade_no,omitempty"`
+	// QuotaBaseline 记录即刻收次数包下单时的余额基线；余额超过基线视为新购到账。
+	QuotaBaseline     int64  `json:"quota_baseline,omitempty"`
+	ProofHash         string `json:"proof_hash,omitempty"`
+	FulfillmentStatus string `json:"fulfillment_status,omitempty"`
 }
 
 // Challenge 是一次性激活/续租挑战；nonce 一次有效，绑定设备公钥。

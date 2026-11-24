@@ -19,12 +19,126 @@ import (
 
 const DefaultServer = "https://api.uzphoto.com"
 
+// ErrPagePayUnavailable 表示控制面未挂载统一收款路由（buy 据此提示未开通）。
+var ErrPagePayUnavailable = errors.New("page pay is not open on this control plane")
+
 type Client struct {
 	BaseURL   string
 	HTTP      *http.Client
 	Device    *deviceid.Manager
 	InstallID string
 	APIToken  string
+}
+
+// PageIntent 是统一收款（page pay）订单的收银台意图。
+type PageIntent struct {
+	OrderID  string `json:"order_id"`
+	Plan     string `json:"plan"`
+	Status   string `json:"status"`
+	Amount   string `json:"amount"`
+	Currency string `json:"currency"`
+	Paid     bool   `json:"paid"`
+	PayURL   string `json:"pay_url,omitempty"`
+	// PayQRCode 是即刻收返回的二维码内容（purchase_qr_code），优先于 PayURL 渲染。
+	PayQRCode string    `json:"pay_qr_code,omitempty"`
+	PayBefore time.Time `json:"pay_before"`
+}
+
+// BeginPageIntent 向统一收款通道下单并返回收银台 URL（幂等：同 request_id 返回同一订单）。
+func (c *Client) BeginPageIntent(ctx context.Context, requestID, plan string) (PageIntent, error) {
+	if c.Device == nil {
+		return PageIntent{}, errors.New("device identity is not configured")
+	}
+	if strings.TrimSpace(requestID) == "" {
+		return PageIntent{}, errors.New("request id is required")
+	}
+	identity, err := c.Device.LoadOrCreate(ctx)
+	if err != nil {
+		return PageIntent{}, err
+	}
+	payload := ActivationIntentRequest{
+		RequestID: requestID, Plan: plan, InstallID: c.InstallID, DevicePublicKey: identity.PublicKey,
+	}
+	raw, err := json.Marshal(payload)
+	if err != nil {
+		return PageIntent{}, err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost,
+		c.baseURL()+"/v1/pay/page-intent", bytes.NewReader(raw))
+	if err != nil {
+		return PageIntent{}, err
+	}
+	request.Header.Set("Content-Type", "application/json")
+	if token := strings.TrimSpace(c.APIToken); token != "" {
+		request.Header.Set("Authorization", "Bearer "+token)
+	}
+	response, err := c.httpClient().Do(request)
+	if err != nil {
+		return PageIntent{}, err
+	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(io.LimitReader(response.Body, 1<<20))
+	if err != nil {
+		return PageIntent{}, err
+	}
+	switch response.StatusCode {
+	case http.StatusOK:
+		var intent PageIntent
+		if err := json.Unmarshal(body, &intent); err != nil {
+			return PageIntent{}, fmt.Errorf("decode page intent: %w", err)
+		}
+		return intent, nil
+	case http.StatusNotFound:
+		return PageIntent{}, fmt.Errorf("control plane: %w (HTTP 404)", ErrPagePayUnavailable)
+	default:
+		return PageIntent{}, controlPlaneFailure(body, response.StatusCode)
+	}
+}
+
+// PageStatus 查询统一收款订单状态（服务端用 TradeQuery 兜底确认入账）。
+func (c *Client) PageStatus(ctx context.Context, orderID string) (PageIntent, error) {
+	if strings.TrimSpace(orderID) == "" {
+		return PageIntent{}, errors.New("order id is required")
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet,
+		c.baseURL()+"/v1/pay/"+orderID+"/status", nil)
+	if err != nil {
+		return PageIntent{}, err
+	}
+	if token := strings.TrimSpace(c.APIToken); token != "" {
+		request.Header.Set("Authorization", "Bearer "+token)
+	}
+	response, err := c.httpClient().Do(request)
+	if err != nil {
+		return PageIntent{}, err
+	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(io.LimitReader(response.Body, 1<<20))
+	if err != nil {
+		return PageIntent{}, err
+	}
+	switch response.StatusCode {
+	case http.StatusOK:
+		var intent PageIntent
+		if err := json.Unmarshal(body, &intent); err != nil {
+			return PageIntent{}, fmt.Errorf("decode page status: %w", err)
+		}
+		return intent, nil
+	case http.StatusNotFound:
+		return PageIntent{}, fmt.Errorf("control plane: %w (HTTP 404)", ErrPagePayUnavailable)
+	default:
+		return PageIntent{}, controlPlaneFailure(body, response.StatusCode)
+	}
+}
+
+func controlPlaneFailure(body []byte, status int) error {
+	var failure struct {
+		Error string `json:"error"`
+	}
+	if json.Unmarshal(body, &failure) == nil && failure.Error != "" {
+		return fmt.Errorf("control plane: %s (HTTP %d)", failure.Error, status)
+	}
+	return fmt.Errorf("control plane: HTTP %d", status)
 }
 
 type challengeReply struct {
@@ -135,13 +249,7 @@ func (c *Client) BeginActivationIntent(ctx context.Context, requestID, plan stri
 		}
 		return PaymentIntentResult{Grant: envelope.Content}, nil
 	default:
-		var failure struct {
-			Error string `json:"error"`
-		}
-		if json.Unmarshal(body, &failure) == nil && failure.Error != "" {
-			return PaymentIntentResult{}, fmt.Errorf("control plane: %s (HTTP %d)", failure.Error, response.StatusCode)
-		}
-		return PaymentIntentResult{}, fmt.Errorf("control plane: HTTP %d", response.StatusCode)
+		return PaymentIntentResult{}, controlPlaneFailure(body, response.StatusCode)
 	}
 }
 
@@ -215,13 +323,7 @@ func (c *Client) do(ctx context.Context, method, path string, payload any, out a
 		return err
 	}
 	if response.StatusCode != http.StatusOK {
-		var failure struct {
-			Error string `json:"error"`
-		}
-		if json.Unmarshal(raw, &failure) == nil && failure.Error != "" {
-			return fmt.Errorf("control plane: %s (HTTP %d)", failure.Error, response.StatusCode)
-		}
-		return fmt.Errorf("control plane: HTTP %d", response.StatusCode)
+		return controlPlaneFailure(raw, response.StatusCode)
 	}
 	if err := json.Unmarshal(raw, out); err != nil {
 		return fmt.Errorf("decode control plane response: %w", err)

@@ -540,26 +540,52 @@ func validateIntentRequest(request ActivationIntentRequest) error {
 
 var amountPattern = regexp.MustCompile(`^([0-9]+)(?:\.([0-9]{1,2}))?$`)
 
-func normalizeAmount(value string) (string, error) {
+// parseCNYCents parses a CNY amount into integer cents.
+func parseCNYCents(value string) (int64, error) {
 	match := amountPattern.FindStringSubmatch(strings.TrimSpace(value))
 	if match == nil {
-		return "", errors.New("invalid CNY amount")
+		return 0, errors.New("invalid CNY amount")
 	}
 	whole, err := strconv.ParseInt(match[1], 10, 64)
 	if err != nil {
-		return "", errors.New("invalid CNY amount")
+		return 0, errors.New("invalid CNY amount")
 	}
 	fraction := match[2] + strings.Repeat("0", 2-len(match[2]))
 	fractionCents, err := strconv.ParseInt(fraction, 10, 64)
 	if err != nil {
-		return "", errors.New("invalid CNY amount")
+		return 0, errors.New("invalid CNY amount")
 	}
-	cents := whole*100 + fractionCents
+	return whole*100 + fractionCents, nil
+}
+
+// normalizeAmount keeps the Machine Pay 402 path constrained to the 50 CNY
+// service-registration price cap; it must stay untouched for compatibility.
+func normalizeAmount(value string) (string, error) {
+	cents, err := parseCNYCents(value)
+	if err != nil {
+		return "", err
+	}
 	if cents <= 0 {
 		return "", errors.New("amount must be positive")
 	}
 	if cents > 5000 {
 		return "", errors.New("amount exceeds Alipay 50 CNY limit")
+	}
+	return fmt.Sprintf("%d.%02d", cents/100, cents%100), nil
+}
+
+// normalizePlanAmount normalizes plan prices for the unified page-pay checkout
+// (alipay.trade.page.pay accepts [0.01, 1亿]) without the Machine Pay cap.
+func normalizePlanAmount(value string) (string, error) {
+	cents, err := parseCNYCents(value)
+	if err != nil {
+		return "", err
+	}
+	if cents <= 0 {
+		return "", errors.New("amount must be positive")
+	}
+	if cents > 10000000000 {
+		return "", errors.New("amount exceeds Alipay page pay limit")
 	}
 	return fmt.Sprintf("%d.%02d", cents/100, cents%100), nil
 }

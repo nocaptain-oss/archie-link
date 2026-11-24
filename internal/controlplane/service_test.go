@@ -8,6 +8,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
@@ -418,4 +419,97 @@ func hmacSHA256(secret []byte, message string) string {
 	mac := hmac.New(sha256.New, secret)
 	mac.Write([]byte(message))
 	return hex.EncodeToString(mac.Sum(nil))
+}
+
+func containsFeature(features []string, want string) bool {
+	for _, feature := range features {
+		if feature == want {
+			return true
+		}
+	}
+	return false
+}
+
+func decodeLease(t *testing.T, envelope []byte) entitlement.Lease {
+	t.Helper()
+	var keyed entitlement.KeyedPayload
+	if err := json.Unmarshal(envelope, &keyed); err != nil {
+		t.Fatal(err)
+	}
+	var lease entitlement.Lease
+	if err := json.Unmarshal(keyed.Payload, &lease); err != nil {
+		t.Fatal(err)
+	}
+	return lease
+}
+
+func TestPlanEntitlementTiers(t *testing.T) {
+	perpetual, ok := PlanByName("perpetual")
+	if !ok {
+		t.Fatal("perpetual plan must exist")
+	}
+	family, ok := PlanByName("family-annual-12")
+	if !ok {
+		t.Fatal("family-annual-12 plan must exist")
+	}
+	task, ok := PlanByName("activation-task")
+	if !ok {
+		t.Fatal("activation-task plan must exist")
+	}
+	if !containsFeature(perpetual.Features, FeatureExportPrivate) || !containsFeature(family.Features, FeatureExportPrivate) {
+		t.Fatalf("perpetual/family must grant export_private: %v / %v", perpetual.Features, family.Features)
+	}
+	if containsFeature(task.Features, FeatureExportPrivate) {
+		t.Fatalf("activation-task must not grant export_private: %v", task.Features)
+	}
+	if perpetual.Amount != "199.00" || family.Amount != "69.00" || task.Amount != "19.90" {
+		t.Fatalf("unexpected amounts: %q %q %q", perpetual.Amount, family.Amount, task.Amount)
+	}
+	if task.GraceWindow() != 7*24*time.Hour {
+		t.Fatalf("activation-task grace window = %v, want 7d", task.GraceWindow())
+	}
+	if perpetual.GraceWindow() != GracePeriod || family.GraceWindow() != GracePeriod {
+		t.Fatal("perpetual and family must keep the 30-day default grace")
+	}
+}
+
+func TestActivationTaskLeaseWindowAndFeatures(t *testing.T) {
+	f := newFixture(t, "activation-task")
+	if err := f.pay(t, f.order.ID, "evt_1", f.now); err != nil {
+		t.Fatal(err)
+	}
+	device := newDevice(t, t.TempDir(), "install-task")
+	leaseBytes, err := f.activate(t, "install-task", device)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lease := decodeLease(t, leaseBytes)
+	if lease.ExpiresAt.Sub(f.now) != LeaseTTL {
+		t.Fatalf("lease TTL = %v, want %v", lease.ExpiresAt.Sub(f.now), LeaseTTL)
+	}
+	if got := lease.OfflineGraceUntil.Sub(f.now); got != 14*24*time.Hour {
+		t.Fatalf("activation-task execution window = %v, want 14d", got)
+	}
+	if containsFeature(lease.Features, FeatureExportPrivate) {
+		t.Fatalf("activation-task lease must not carry export_private: %v", lease.Features)
+	}
+}
+
+func TestPerpetualLeaseGrantsExportPrivate(t *testing.T) {
+	f := newFixture(t, "perpetual")
+	if err := f.pay(t, f.order.ID, "evt_1", f.now); err != nil {
+		t.Fatal(err)
+	}
+	device := newDevice(t, t.TempDir(), "install-perp")
+	leaseBytes, err := f.activate(t, "install-perp", device)
+	if err != nil {
+		t.Fatal(err)
+	}
+	lease := decodeLease(t, leaseBytes)
+	if !containsFeature(lease.Features, FeatureExportPrivate) {
+		t.Fatalf("perpetual lease features = %v, want export_private", lease.Features)
+	}
+	if got := lease.OfflineGraceUntil.Sub(f.now); got != LeaseTTL+GracePeriod {
+		t.Fatalf("perpetual grace = %v, want %v", got, LeaseTTL+GracePeriod)
+	}
 }

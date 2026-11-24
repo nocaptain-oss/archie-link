@@ -2,8 +2,8 @@
   "app": {
     "bundleName": "com.archielink.companion",
     "vendor": "ArchieLink",
-    "versionCode": 5000000,
-    "versionName": "0.5.0-d3",
+    "versionCode": 5000100,
+    "versionName": "0.5.1",
     "icon": "$media:archielink_icon",
     "label": "$string:app_name"
   }

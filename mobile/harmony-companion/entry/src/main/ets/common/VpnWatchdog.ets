@@ -110,7 +110,8 @@ async function restartVpnExtension(context: common.UIAbilityContext): Promise<vo
         privateKey: config.privateKey ?? '',
         publicKey: config.publicKey ?? '',
         presharedKey: config.presharedKey ?? '',
-        allowedIPs: config.allowedIPs ?? '0.0.0.0/0'
+        allowedIPs: config.allowedIPs ?? '0.0.0.0/0',
+        tunnelMtu: config.mtu ?? 0
       }
     };
     await vpnExtension.startVpnExtensionAbility(want);

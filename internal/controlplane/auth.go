@@ -19,6 +19,8 @@ type HandlerConfig struct {
 	Limiter    *RateLimiter
 	TrustProxy bool
 	Payment    *PaymentService
+	PagePay    *PagePayService
+	NowPay     *NowPayService
 }
 
 // NewHandler builds the HTTP surface with fail-closed token authentication.
@@ -51,6 +53,19 @@ func NewHandler(service *Service, config HandlerConfig) (http.Handler, error) {
 	mux.Handle("GET /v1/subscriptions/{id}/epoch", api(handleEpoch(service)))
 	if config.Payment != nil {
 		mux.Handle("POST /v1/pay/activation-intent", public(handleActivationIntent(config.Payment)))
+	}
+	// 即刻收直连与网页收款共用三条客户端路由（page-intent/checkout/status），
+	// 同时注册会触发 ServeMux 重复模式冲突；即刻收优先。
+	switch {
+	case config.NowPay != nil:
+		mux.Handle("POST /v1/pay/page-intent", public(handleNowPayIntent(config.NowPay)))
+		mux.Handle("GET /v1/pay/{id}/checkout", public(handleNowPayCheckout(config.NowPay)))
+		mux.Handle("GET /v1/pay/{id}/status", public(handleNowPayStatus(config.NowPay)))
+	case config.PagePay != nil:
+		mux.Handle("POST /v1/pay/page-intent", public(handlePageIntent(config.PagePay)))
+		mux.Handle("GET /v1/pay/{id}/checkout", public(handlePageCheckout(config.PagePay)))
+		mux.Handle("POST /v1/pay/notify", public(handlePageNotify(config.PagePay)))
+		mux.Handle("GET /v1/pay/{id}/status", public(handlePageStatus(config.PagePay)))
 	}
 
 	var handler http.Handler = mux

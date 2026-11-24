@@ -255,8 +255,25 @@ Agent 不得：
   ④ `appCertFile` 必须是证书链文件（单证书报 11013004 Profile cert must
   a cert chain），链 = 叶证书（从 p7b 内 distribution-certificate 提取）
   + 中间 CA（Huawei CBG Developer Relations CA G2）；⑤ keystore 同目录
-  必须存在 `material/` 子目录（ENOENT stat 报 00308018）。首签产物
+  必须存在   `material/` 子目录（ENOENT stat 报 00308018）。首签产物
   `c8594d89b7ac99b5`（代码同 `c8cab921`，签名链独立）。
+- **打包位置固定化（2026-11-20 规约，长期有效）**：交付包唯一位置
+  `dist/harmony/`（gitignored，与 `dist/android`、Go 版本目录平级）——固定
+  文件名 `archielink-companion.hap`（release 签名 HAP，云测上传）、
+  `archielink-companion.app`（AGC 上架包）、`SHA256SUMS.txt`（全 64 位哈希
+  + 版本 + 签名链 + 源码 commit，每次打包刷新）。铁律：`**/build/**` 下瞬态
+  构建产物不作为交付引用；`artifacts/` 只放报告/日志/截图不放包副本；
+  历史版本归档用 `dist/<version>/`（同 Go 惯例）。AGC 上架包打包流程
+  （2026-11-20 实测）：① `devecocli build --product release --build-mode
+  release` 出 unsigned HAP；② HAP 改名 `entry-default.hap`（必须与
+  pack.info `packages[].name` 一致，AGC FAQ-76），`app_packing_tool.jar
+  --mode app --hap-path … --pack-info-path … --out-path …` 打未签名
+  `.app`——该工具重打包会剥内层 HAP 签名块，属预期；③ `hap-sign-tool.jar
+  sign-app`（参数同上条发布签名链）签 `.app` 外层，`verify-app` PASS；
+  ④ 拷贝至 `dist/harmony/` 固定文件名并刷新 SHA256SUMS.txt。**形态已实测
+  确认（2026-11-20）**：`.app` 仅外层签名、内层 HAP 无独立签名块的形态
+  **被 AGC 上传接受**（`7013306a498f9a79`，0.5.0，上传未遇拦截），
+  DevEco Build APP(s) 形态对照不再需要。
 
 ### 生产化加固（2026-11-10 实机验收）
 

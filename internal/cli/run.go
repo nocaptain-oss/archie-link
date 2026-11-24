@@ -94,7 +94,7 @@ func Run(args []string, stdout, stderr io.Writer) int {
 
 func RunWithDeps(args []string, stdout, stderr io.Writer, deps Dependencies) int {
 	if len(args) == 0 {
-		fmt.Fprintln(stderr, "usage: archielink <version|detect|plan|doctor|coexist|lease|device|remote|up|down|status|rollback|export>")
+		fmt.Fprintln(stderr, "usage: archielink <version|detect|plan|doctor|coexist|lease|buy|device|remote|up|down|status|rollback|export>")
 		return 2
 	}
 
@@ -103,6 +103,9 @@ func RunWithDeps(args []string, stdout, stderr io.Writer, deps Dependencies) int
 	}
 	if args[0] == "lease" {
 		return runLease(args[1:], stdout, stderr, deps)
+	}
+	if args[0] == "buy" {
+		return runBuy(args[1:], stdout, stderr, deps)
 	}
 	if args[0] == "device" {
 		return runDevice(args[1:], stdout, stderr, deps)
