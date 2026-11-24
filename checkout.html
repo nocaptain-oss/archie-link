@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="汪连 ArchieLink 订单支付——支付宝付款，支付完成后自动激活。">
+<title>订单支付｜汪连 ArchieLink</title>
+<style>
+  :root {
+    --ink: #1c2430; --sub: #5a6676; --line: #e3e8ef; --bg: #f7f9fc;
+    --accent: #2563eb; --card: #ffffff; --alipay: #1677ff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", "Segoe UI", sans-serif;
+    line-height: 1.7; font-size: 16px;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 20px 64px; }
+  header { padding: 40px 0 8px; }
+  .crumb { color: var(--sub); font-size: 14px; margin-bottom: 12px; }
+  .crumb a { color: var(--accent); text-decoration: none; }
+  h1 { font-size: 24px; margin: 0 0 6px; }
+  .brand-sub { color: var(--sub); margin: 0 0 20px; }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 12px; padding: 20px 22px; margin: 14px 0;
+  }
+  h2 { font-size: 17px; margin: 0 0 12px; }
+  p { margin: 8px 0; }
+  a { color: var(--accent); text-decoration: none; }
+  table { width: 100%; border-collapse: collapse; }
+  td { padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 15px; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td.label { color: var(--sub); width: 96px; }
+  .amount-row { display: flex; align-items: baseline; justify-content: space-between; margin: 16px 0 4px; }
+  .amount-row .label { color: var(--sub); }
+  .amount { font-size: 30px; font-weight: 700; }
+  .pay-method {
+    display: flex; align-items: center; gap: 12px;
+    border: 2px solid var(--alipay); border-radius: 10px;
+    padding: 14px 16px; margin: 10px 0; background: #f5f9ff;
+  }
+  .pay-method .logo {
+    width: 34px; height: 34px; border-radius: 8px; background: var(--alipay);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 15px; flex: none;
+  }
+  .pay-method .name { font-weight: 600; }
+  .pay-method .desc { color: var(--sub); font-size: 13px; }
+  .pay-method .check { margin-left: auto; color: var(--alipay); font-size: 20px; }
+  .status {
+    display: flex; align-items: center; gap: 10px; margin: 6px 0 2px;
+    color: var(--ink); font-weight: 600;
+  }
+  .spinner {
+    width: 14px; height: 14px; border-radius: 50%;
+    border: 3px solid #c9dcff; border-top-color: var(--alipay);
+    animation: spin 0.9s linear infinite; flex: none;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .pay-btn {
+    display: block; text-align: center; margin-top: 18px; padding: 13px 0;
+    background: var(--alipay); color: #fff; border-radius: 10px;
+    font-size: 17px; font-weight: 700; text-decoration: none;
+  }
+  .pay-btn:hover { opacity: 0.92; text-decoration: none; }
+  .note { color: var(--sub); font-size: 13px; margin-top: 12px; }
+  footer { margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--line); color: var(--sub); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <p class="crumb"><a href="index.html">首页</a> / <a href="product.html">商品详情</a> / 订单支付</p>
+  <h1>订单支付</h1>
+  <p class="brand-sub">汪连 ArchieLink｜外网访问专家</p>
+</header>
+
+<main>
+<div class="card">
+  <h2>订单信息</h2>
+  <table>
+    <tr><td class="label">商品名称</td><td id="plan-name">个人永久版</td></tr>
+    <tr><td class="label">商品编号</td><td id="plan-code">perpetual</td></tr>
+    <tr><td class="label">数量</td><td>1</td></tr>
+    <tr><td class="label">订单编号</td><td id="order-id">ORD-20261124-0001</td></tr>
+  </table>
+  <div class="amount-row">
+    <span class="label">应付金额</span>
+    <span class="amount" id="amount">¥199.00</span>
+  </div>
+</div>
+
+<div class="card">
+  <h2>支付方式</h2>
+  <div class="pay-method">
+    <div class="logo">支</div>
+    <div>
+      <div class="name">支付宝</div>
+      <div class="desc">推荐 · 支持余额、银行卡、花呗</div>
+    </div>
+    <div class="check">✓</div>
+  </div>
+  <div class="status"><div class="spinner"></div>等待付款中——请选择支付方式并完成支付</div>
+  <a class="pay-btn" href="javascript:void(0)">确认支付 ¥<span id="btn-amount">199.00</span></a>
+  <p class="note">点击「确认支付」后将打开支付宝完成付款；支付完成后授权自动激活，无需人工干预。本页面在完成支付前将保持等待状态。</p>
+</div>
+</main>
+
+<footer>
+  <p>© 2026 汪连 ArchieLink｜外网访问专家。「汪连 ArchieLink」为暂定工作名。Cloudflare WARP、WireGuard 与 wgcf 只作为技术后端名称，不替代产品名。</p>
+</footer>
+</div>
+
+<script>
+  var plans = {
+    'activation-task': { name: '按次激活', price: '19.90' },
+    'perpetual': { name: '个人永久版', price: '199.00' },
+    'family-annual-12': { name: '家庭年度版', price: '69.00' }
+  };
+  var plan = plans['perpetual'];
+  try {
+    var q = new URLSearchParams(window.location.search).get('plan');
+    if (q && plans[q]) { plan = plans[q]; }
+  } catch (e) { }
+  document.getElementById('plan-name').textContent = plan.name;
+  document.getElementById('plan-code').textContent = Object.keys(plans).find(function (k) { return plans[k] === plan; }) || 'perpetual';
+  document.getElementById('amount').textContent = '¥' + plan.price;
+  document.getElementById('btn-amount').textContent = plan.price;
+</script>
+</body>
+</html>
