@@ -1,6 +1,6 @@
 ---
 name: archie-link
-description: Safely diagnose and establish a Cloudflare WARP/VPN fallback with snapshots, coexistence checks, health verification, deterministic rollback, and optional SkillHub Pay activation. Use when the user explicitly asks to connect, repair foreign network access, or restore a failed connection.
+description: Safely diagnose and establish a Cloudflare WARP/VPN fallback with snapshots, coexistence checks, health verification, deterministic rollback, and optional paid activation. Use when the user explicitly asks to connect, repair foreign network access, or restore a failed connection.
 metadata:
   short-description: Safe network fallback with automatic rollback
 ---
@@ -11,14 +11,14 @@ Use the installed `archielink` binary. The CLI is the only source of truth for n
 
 ## Prerequisites: the `archielink` CLI
 
-Check first: `command -v archielink`. This skill ships without the binary. If it is missing, install it from the official GitHub repository before any skill step:
+Check first: `command -v archielink`. This skill ships without the binary. If missing, install from the official GitHub repository before any skill step:
 
-1. Download the platform binary from <https://github.com/nocaptain-oss/archie-link/releases> (v1.1.0+): `archielink-darwin-arm64` (macOS Apple Silicon) / `archielink-darwin-amd64` (macOS Intel) / `archielink-windows-amd64.exe` / `archielink-windows-arm64.exe`. Linux: build from source, `go build ./cmd/archielink`.
-2. Verify integrity against the Release's `SHA256SUMS`: `shasum -a 256 -c --ignore-missing SHA256SUMS`.
-3. Put it on `PATH` with exec permission (`chmod +x`, e.g. `/usr/local/bin/archielink`).
+1. Download the platform binary from <https://github.com/nocaptain-oss/archie-link/releases> (v1.1.0+): `archielink-darwin-arm64` / `archielink-darwin-amd64` / `archielink-windows-amd64.exe` / `archielink-windows-arm64.exe`. Linux: build from source, `go build ./cmd/archielink`.
+2. Verify against the Release's `SHA256SUMS`: `shasum -a 256 -c --ignore-missing SHA256SUMS`.
+3. Put it on `PATH` with exec permission (`chmod +x`).
 4. macOS Gatekeeper may block the unsigned binary: right-click → Open, or `xattr -d com.apple.quarantine <file>`. Windows SmartScreen: "Run anyway".
 
-Use no other download source. Full install guide: <https://github.com/nocaptain-oss/archie-link#安装>. Do not proceed with skill steps until `archielink` is on `PATH`.
+Use no other download source. Full install guide: <https://github.com/nocaptain-oss/archie-link#安装>. Do not proceed until `archielink` is on `PATH`.
 
 ## Ownership
 
@@ -38,7 +38,7 @@ Explain the observed problem and the proposed change. Start a connection only af
 
 ## Paid activation
 
-Three products, one unified Alipay web checkout (aipay "AI web app collection"):
+Three products, paid by Alipay QR code rendered in the terminal (no browser jump):
 
 | Plan | Price | Entitlement |
 |---|---|---|
@@ -50,7 +50,7 @@ Three products, one unified Alipay web checkout (aipay "AI web app collection"):
 archielink buy <plan> --request-id <stable-request-id> --server https://api.uzphoto.com --json
 ```
 
-Prints a checkout URL (`pay_url`); the user pays in a browser. The CLI polls the order and activates the lease once paid. Never build payment cryptography or pass payment through WARP. Orders bind `install_id` + `device_public_key`; never reuse a request ID across devices. Legacy Machine Pay 402 remains a compatibility channel.
+The CLI renders an Alipay QR code in the terminal; the user scans it with the Alipay app (扫一扫). The CLI polls the order and activates the lease once paid. If the QR does not render, give the user the printed `pay_url` to open manually. Never build payment cryptography. Orders bind `install_id` + `device_public_key`; never reuse a request ID across devices.
 
 ## Start
 
@@ -95,16 +95,15 @@ archielink down --json
 
 ## File reports
 
-`detect` and `doctor` accept `--output <path>`: the JSON report is written to a 0600 file (existing files are never overwritten), byte-identical to `--json` stdout — useful for archiving or attaching to a ticket.
+`detect` and `doctor` accept `--output <path>`: the JSON report is written to a 0600 file (existing files are never overwritten), byte-identical to `--json` stdout.
 
 ## iOS devices (zero-companion track)
 
-No bridge RPC, no per-app split tunneling (MDM only), no remote status. The host only exports a config for the official WireGuard App.
+No bridge RPC, no per-app split tunneling (MDM only), no remote status. The host only exports a config for the official WireGuard App (App Store, free).
 
-1. User installs the official WireGuard App from the App Store (free, ships with Network Extension permission).
-2. Export on explicit request (needs `export_private`, perpetual/family plans; exit 4 otherwise): `archielink export --format wireguard --include-private-key --output <path>` (0600 file), or `archielink export --format qrcode --output <path>` for a PNG (0600) the phone scans via "Create from QR code".
-3. Move the file via a user-chosen channel (AirDrop / Files) or show the PNG on screen.
-4. In the app: add tunnel from file or QR code → approve the VPN permission prompt → activate → verify the exit IP in Safari.
+1. Export on explicit request (needs `export_private`, perpetual/family plans; exit 4 otherwise): `archielink export --format wireguard --include-private-key --output <path>` (0600 file), or `archielink export --format qrcode --output <path>` for a PNG (0600) the phone scans via "Create from QR code".
+2. Move the file via a user-chosen channel (AirDrop / Files) or show the PNG on screen.
+3. In the app: add tunnel from file or QR code → approve the VPN permission prompt → activate → verify the exit IP in Safari.
 
 Never paste the full config into chat or cloud storage; the private key stays in the 0600 file/PNG and the user-chosen channel only.
 
@@ -113,10 +112,9 @@ Never paste the full config into chat or cloud storage; the private key stays in
 No automatic lifecycle: `up`/`down`/`status`/`rollback` print a structured guided report and exit `3`. The official WireGuard for Windows app manages the tunnel; `export` works once `ARCHIE_LINK_WG_CONFIG` points to a `.conf`.
 
 1. Install the official WireGuard MSI from https://www.wireguard.com/install/ (verify the Authenticode signer is `WireGuard LLC`).
-2. Export a `.conf` on a macOS host and transfer it over a user-chosen channel.
-3. In the app: "Add Tunnel" → "Import tunnel(s) from file".
-4. Kill-switch gotcha (real incident, 2026-11-18): with `AllowedIPs = 0.0.0.0/0` the app enables "Block untunneled traffic" by default and the machine stops answering LAN ping/SSH although the tunnel works. Untick it before activating. CLI `/installtunnelservice` hits the same blackout; recover with `wireguard.exe /uninstalltunnelservice <name>`.
-5. Activate, verify the exit IP in a browser; deactivate from the app anytime.
+2. Export a `.conf` on a macOS host and transfer it over a user-chosen channel; in the app: "Add Tunnel" → "Import tunnel(s) from file".
+3. Kill-switch gotcha (real incident): with `AllowedIPs = 0.0.0.0/0` the app enables "Block untunneled traffic" by default and the machine stops answering LAN ping/SSH although the tunnel works. Untick it before activating; recover with `wireguard.exe /uninstalltunnelservice <name>`.
+4. Activate, verify the exit IP in a browser; deactivate from the app anytime.
 
 ## Remote read-only sessions (cross-device)
 
@@ -134,11 +132,11 @@ archielink remote connect <ip:port> <code> --fingerprint <sha256> --json   # pin
 
 Rules:
 
-- `serve` answers exactly one connection — right or wrong code — then exits (fail closed, no brute-force window). Default TTL 10 minutes (`--ttl`).
+- `serve` answers exactly one connection — right or wrong code — then exits (fail closed). Default TTL 10 minutes (`--ttl`).
 - RPC whitelist `hello|capabilities|detect|plan|doctor`; no shell, no write RPC, no file access.
 - The full pairing code exists only on the target's stdout; relay it verbally or through a user-chosen channel (logs carry a redacted form like `41****01`).
 - Exit 5 with `error.code` (`connect_failed`, `pairing_invalid`, `pairing_expired`, `pairing_rejected`, `fingerprint_mismatch`, `confirm_timeout`) means the session never established; do not retry with guessed codes.
-- Host firewalls block the listener: Windows Defender silently drops inbound to the binary (add a temporary named rule, remove it after); macOS shows an "accept incoming connections" prompt the user must Allow. The endpoint hint skips link-local addresses; confirm the reachable LAN IP.
+- Host firewalls: Windows Defender silently drops inbound (add a temporary named rule, remove after); macOS shows an "accept incoming connections" prompt the user must Allow. The endpoint hint skips link-local addresses; confirm the reachable LAN IP.
 
 ## Hard safety rules
 
