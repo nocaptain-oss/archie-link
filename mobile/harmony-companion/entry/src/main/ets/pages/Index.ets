@@ -473,17 +473,25 @@ struct Index {
                   .onClick((): void => {
                     this.importConfig();
                   })
-                Button('粘贴导入')
+                PasteButton({ icon: PasteIconStyle.LINES, text: PasteDescription.PASTE, buttonType: ButtonType.Normal })
                   .height(32)
                   .padding({ left: 13, right: 13 })
                   .fontSize(12.5)
                   .fontWeight(FontWeight.Medium)
                   .fontColor('#0a1513')
                   .backgroundColor('#ffffff')
-                  .border({ width: 1, color: '#d3ded9' })
+                  .borderStyle(BorderStyle.Solid)
+                  .borderWidth(1)
+                  .borderColor('#d3ded9')
                   .borderRadius(12)
-                  .onClick((): void => {
-                    this.importFromClipboard();
+                  .iconSize(14)
+                  .iconColor('#0a1513')
+                  .onClick((event: ClickEvent, result: PasteButtonOnClickResult) => {
+                    if (result === PasteButtonOnClickResult.SUCCESS) {
+                      this.importFromClipboard();
+                    } else {
+                      this.detail = '粘贴授权失败，请重试。';
+                    }
                   })
               }
             }
@@ -1132,12 +1140,66 @@ struct Index {
     }
   }
 
+  private htmlToText(html: string): string {
+    if (typeof html !== 'string' || html.length === 0) {
+      return '';
+    }
+    return html
+      .replace(/<br\s*\/?>/g, '\n')
+      .replace(/<\/(p|div|pre|li|tr)>/g, '\n')
+      .replace(/<[^>]*>/g, '')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, '\'')
+      .replace(/&amp;/g, '&')
+      .trim();
+  }
+
+  private async clipboardConfigText(data: pasteboard.PasteData): Promise<string> {
+    const primary: string = data.getPrimaryText();
+    if (typeof primary === 'string' && primary.trim().length > 0) {
+      return primary.trim();
+    }
+    const count: number = data.getRecordCount();
+    for (let i = 0; i < count; i++) {
+      const record: pasteboard.PasteDataRecord = data.getRecord(i);
+      if (record.mimeType === pasteboard.MIMETYPE_TEXT_PLAIN) {
+        const plain: string = record.plainText;
+        if (typeof plain === 'string' && plain.trim().length > 0) {
+          return plain.trim();
+        }
+      } else if (record.mimeType === pasteboard.MIMETYPE_TEXT_HTML) {
+        const htmlText: string = this.htmlToText(record.htmlText);
+        if (htmlText.length > 0) {
+          return htmlText;
+        }
+      } else {
+        const valid: string[] = record.getValidTypes([pasteboard.MIMETYPE_TEXT_PLAIN]);
+        if (valid.indexOf(pasteboard.MIMETYPE_TEXT_PLAIN) >= 0) {
+          try {
+            const value: pasteboard.ValueType = await record.getData(pasteboard.MIMETYPE_TEXT_PLAIN);
+            if (typeof value === 'string' && value.trim().length > 0) {
+              return value.trim();
+            }
+          } catch (error) {
+          }
+        }
+        const fallback: string = record.toPlainText();
+        if (typeof fallback === 'string' && fallback.trim().length > 0) {
+          return fallback.trim();
+        }
+      }
+    }
+    return '';
+  }
+
   private async importFromClipboard(): Promise<void> {
     try {
       const systemPasteboard: pasteboard.SystemPasteboard = pasteboard.getSystemPasteboard();
       const data: pasteboard.PasteData = await systemPasteboard.getData();
-      const text: string = data.getPrimaryText();
-      if (!text || text.trim().length === 0) {
+      const text: string = await this.clipboardConfigText(data);
+      if (text.length === 0) {
         this.detail = '剪贴板没有可导入的配置文本。';
         this.getUIContext().showAlertDialog({
           title: '粘贴导入失败',
@@ -1150,7 +1212,7 @@ struct Index {
         });
         return;
       }
-      const config = parseWgConfig(text.trim());
+      const config = parseWgConfig(text);
       if (config.error) {
         this.detail = config.error;
         this.getUIContext().showAlertDialog({
@@ -1164,7 +1226,7 @@ struct Index {
         });
         return;
       }
-      this.persistRawConfig(text.trim());
+      this.persistRawConfig(text);
       this.applyConfig(config);
       this.detail = `粘贴导入成功 · ${config.serverHost}:${config.serverPort} · ${config.clientAddress}`;
     } catch (error) {
