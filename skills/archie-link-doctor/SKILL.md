@@ -1,8 +1,16 @@
 ---
 name: archie-link-doctor
-description: Diagnose network reachability and WARP fallback eligibility without changing system settings. Use when a person or agent needs read-only DNS, route, proxy, tunnel, local-service, or foreign-endpoint diagnosis before deciding whether to install a network fallback. 中文触发场景：网络体检、网络诊断、检查网络环境、网络排查、外网访问诊断、GitHub 连不上排查、连不上外网先检查。
+description: "Diagnose network reachability and WARP fallback eligibility without changing system settings. Use when a person or agent needs read-only DNS, route, proxy, tunnel, local-service, or foreign-endpoint diagnosis before deciding whether to install a network fallback. 中文触发场景：网络体检、网络诊断、检查网络环境、网络排查、外网访问诊断、GitHub 连不上排查、连不上外网先检查。"
 metadata:
-  short-description: Read-only network diagnosis for agent environments
+  short-description: "Read-only network diagnosis for agent environments"
+  triggers:
+    - 网络体检
+    - 网络诊断
+    - 检查网络环境
+    - 网络排查
+    - 外网访问诊断
+    - GitHub 连不上排查
+    - 连不上外网先检查
 ---
 
 # ArchieLink Doctor
