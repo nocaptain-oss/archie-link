@@ -1,6 +1,6 @@
 ---
 name: archie-link
-description: Safely diagnose and establish a Cloudflare WARP/VPN fallback with snapshots, coexistence checks, health verification, deterministic rollback, and optional paid activation. Use when the user explicitly asks to connect, repair foreign network access, or restore a failed connection.
+description: Safely diagnose and establish a Cloudflare WARP/VPN fallback with snapshots, coexistence checks, health verification, deterministic rollback, and optional paid activation. Use when the user explicitly asks to connect, repair foreign network access, or restore a failed connection. 中文触发场景：外网访问、科学上网、连不上外网、帮我连外网、Google 打不开、YouTube 连不上、GitHub 连接失败、修复网络、恢复外网连接。
 metadata:
   short-description: Safe network fallback with automatic rollback
 ---
@@ -18,7 +18,11 @@ Check first: `command -v archielink`. This skill ships without the binary. If mi
 3. Put it on `PATH` with exec permission (`chmod +x`).
 4. macOS Gatekeeper may block the unsigned binary: right-click → Open, or `xattr -d com.apple.quarantine <file>`. Windows SmartScreen: "Run anyway".
 
-Use no other download source. Full install guide: <https://github.com/nocaptain-oss/archie-link#安装>. Do not proceed until `archielink` is on `PATH`.
+No other download source. Full install guide: <https://github.com/nocaptain-oss/archie-link#安装>. Do not proceed until `archielink` is on `PATH`.
+
+## Related skill: archie-link-doctor
+
+`archie-link-doctor` is the read-only subset of this skill: the same `detect`/`plan`/`doctor`/`coexist` checks, no network writes, no activation. Use it when the user asks for diagnosis only (网络体检/网络排查); use this skill when they ask to connect, repair, or restore (连接/修复/恢复). If it is not installed, it comes from the same GitHub repository and SkillHub (`archie-link-doctor`).
 
 ## Ownership
 

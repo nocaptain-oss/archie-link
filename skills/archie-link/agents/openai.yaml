@@ -1,5 +1,5 @@
 interface:
   display_name: "汪连 ArchieLink"
-  short_description: "Safe macOS network fallback with rollback and paid activation"
+  short_description: "Safe network fallback with automatic rollback and paid activation"
   default_prompt: "Use $archie-link to diagnose and safely establish a fallback connection."
   brand_color: "#F48120"

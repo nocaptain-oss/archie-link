@@ -1,6 +1,6 @@
 ---
 name: archie-link-doctor
-description: Diagnose network reachability and WARP fallback eligibility without changing system settings. Use when a person or agent needs read-only DNS, route, proxy, tunnel, local-service, or foreign-endpoint diagnosis before deciding whether to install a network fallback.
+description: Diagnose network reachability and WARP fallback eligibility without changing system settings. Use when a person or agent needs read-only DNS, route, proxy, tunnel, local-service, or foreign-endpoint diagnosis before deciding whether to install a network fallback. 中文触发场景：网络体检、网络诊断、检查网络环境、网络排查、外网访问诊断、GitHub 连不上排查、连不上外网先检查。
 metadata:
   short-description: Read-only network diagnosis for agent environments
 ---
@@ -44,4 +44,4 @@ archielink coexist gate --json
 - Never describe `ready` as connected.
 - Report the stable finding codes before suggesting the next step.
 - Treat `foreign_endpoint_unreachable` as evidence of a network problem, not proof that WARP will fix it.
-- Route any implementation or setup request to the later paid setup skill only after the user explicitly asks to continue.
+- Route any implementation or setup request to the full `archie-link` skill — same CLI, adds guarded connect/rollback and optional paid activation — only after the user explicitly asks to continue. If it is not installed, get it from the same GitHub repository or SkillHub (`archie-link`).
