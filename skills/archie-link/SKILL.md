@@ -1,6 +1,6 @@
 ---
 name: archie-link
-description: "Safely diagnose and establish a Cloudflare WARP/VPN fallback with snapshots, coexistence checks, health verification, deterministic rollback, and optional paid activation. Use when the user explicitly asks to connect, repair foreign network access, or restore a failed connection. 中文触发场景：外网访问、科学上网、连不上外网、帮我连外网、Google 打不开、YouTube 连不上、GitHub 连接失败、修复网络、恢复外网连接、免费VPN、开通VPN、VPN 连不上、VPN 修复、VPN 激活、VPN专家。"
+description: "Safely diagnose and establish a Cloudflare WARP/VPN fallback with snapshots, coexistence checks, health verification, deterministic rollback, and optional paid activation. Use when the user explicitly asks to connect, repair foreign network access, or restore a failed connection. 中文触发场景：外网访问、科学上网、连不上外网、帮我连外网、Google 打不开、YouTube 连不上、GitHub 连接失败、修复网络、恢复外网连接、免费VPN、开通VPN、VPN 连不上、VPN 修复、VPN 激活、VPN专家、翻墙、GFW。"
 metadata:
   short-description: "Safe network fallback with automatic rollback"
   triggers:
@@ -19,6 +19,8 @@ metadata:
     - VPN 修复
     - VPN 激活
     - VPN专家
+    - 翻墙
+    - GFW
 ---
 
 # ArchieLink
