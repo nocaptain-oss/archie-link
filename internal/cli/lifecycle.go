@@ -5,9 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"runtime"
+	"strings"
+	"time"
 
 	"github.com/nocaptain-oss/archie-link/internal/app"
+	"github.com/nocaptain-oss/archie-link/internal/leaseclient"
 	"github.com/nocaptain-oss/archie-link/internal/model"
 	appstate "github.com/nocaptain-oss/archie-link/internal/state"
 )
@@ -42,6 +46,11 @@ func runLifecycle(command string, args []string, stdout, stderr io.Writer, deps 
 	}
 
 	lifecycle := deps.Lifecycle
+	// up 前尽力在线刷新撤销 floor：在线客户端在 chargeback/退款后即时被拒，
+	// 离线或控制面不可达时静默容忍，不阻塞也不报错。floor 只升不降。
+	if command == "up" {
+		bestEffortEpochRefresh(context.Background(), lifecycle)
+	}
 	service := app.New(
 		lifecycle.Automatic,
 		lifecycle.Entitlement,
@@ -88,6 +97,40 @@ func runLifecycle(command string, args []string, stdout, stderr io.Writer, deps 
 		return 1
 	}
 	return result.ExitCode
+}
+
+// epochRefreshServer 在测试中可替换控制面地址；生产固定为 leaseclient.DefaultServer。
+var epochRefreshServer = leaseclient.DefaultServer
+
+// bestEffortEpochRefresh 在 up 前尽力向控制面拉取订阅的撤销纪元并 ratchet 本地 floor。
+// 任何一步失败（无租约、离线、超时、旧服务端 401）都静默返回，不影响命令执行。
+func bestEffortEpochRefresh(ctx context.Context, lifecycle *LifecycleDependencies) {
+	if lifecycle == nil || lifecycle.Store.Dir == "" {
+		return
+	}
+	data, err := os.ReadFile(leaseFilePath(lifecycle, ""))
+	if err != nil {
+		return
+	}
+	lease, err := decodeLease(data)
+	if err != nil || strings.TrimSpace(lease.LicenseID) == "" {
+		return
+	}
+	client := leaseclient.Client{BaseURL: epochRefreshServer}
+	fetchCtx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	epoch, err := client.Epoch(fetchCtx, lease.LicenseID)
+	if err != nil || epoch <= 0 {
+		return
+	}
+	state, err := lifecycle.Store.LoadLeaseState()
+	if err != nil {
+		return
+	}
+	if epoch > state.RevocationFloor {
+		state.RevocationFloor = epoch
+		_ = lifecycle.Store.SaveLeaseState(state)
+	}
 }
 
 func runGuidedLifecycle(command string, stdout, stderr io.Writer, jsonOutput bool, deps Dependencies) int {

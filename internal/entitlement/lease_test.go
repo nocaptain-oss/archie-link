@@ -198,6 +198,45 @@ func TestLeaseFileProviderRequiresOnlineReview(t *testing.T) {
 	}
 }
 
+func TestLeaseFileProviderFloorLoaderRatchetsRevocationFloor(t *testing.T) {
+	root, keyID, privateKey := leaseTestRoot(t)
+	now := time.Now().UTC()
+	manager := deviceid.New(deviceid.FileStore{Path: filepath.Join(t.TempDir(), "device.key")}, "install-1")
+	identity, err := manager.LoadOrCreate(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	lease := validLease(now) // RevocationEpoch=12
+	lease.DevicePublicKey = identity.PublicKey
+	data := signLease(t, keyID, privateKey, lease)
+	request := Request{SkillID: "archie-link", InstallID: "install-1", Feature: "network_apply"}
+
+	// FloorLoader 返回更高纪元：Verify 按在线刷新后的 floor 判撤销，无需重建 provider。
+	revoked := LeaseFileProvider{
+		Data:        data,
+		TrustRoot:   root,
+		Device:      manager,
+		FloorLoader: func() (int, error) { return 13, nil },
+		Now:         func() time.Time { return now },
+	}
+	if _, err := revoked.Verify(context.Background(), request); !errors.Is(err, ErrRevoked) {
+		t.Fatalf("expected revoked, got %v", err)
+	}
+
+	// FloorLoader 失败：回退构造时快照（5 ≤ 12，验签通过）。
+	alive := LeaseFileProvider{
+		Data:            data,
+		TrustRoot:       root,
+		Device:          manager,
+		RevocationFloor: 5,
+		FloorLoader:     func() (int, error) { return 0, errors.New("store unavailable") },
+		Now:             func() time.Time { return now },
+	}
+	if _, err := alive.Verify(context.Background(), request); err != nil {
+		t.Fatalf("expected fallback to snapshot floor, got %v", err)
+	}
+}
+
 func leaseTestRoot(t *testing.T) (TrustRoot, string, ed25519.PrivateKey) {
 	t.Helper()
 	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)

@@ -96,7 +96,15 @@ func lifecycleEntitlement(installID string, store appstate.Store) (entitlement.P
 	}
 	return entitlement.LeaseFileProvider{
 		Data: data, TrustRoot: root, Device: device,
-		RevocationFloor:     leaseState.RevocationFloor,
+		RevocationFloor: leaseState.RevocationFloor,
+		// Verify 时重读持久化 floor：up 前在线 epoch 刷新落盘后即时生效，无需重建 provider。
+		FloorLoader: func() (int, error) {
+			current, err := store.LoadLeaseState()
+			if err != nil {
+				return 0, err
+			}
+			return current.RevocationFloor, nil
+		},
 		LastSeenAt:          leaseState.LastSeenAt,
 		ClockReviewRequired: leaseState.ClockReviewRequired,
 		RecordSeen: func(now time.Time) error {

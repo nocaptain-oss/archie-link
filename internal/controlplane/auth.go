@@ -50,7 +50,10 @@ func NewHandler(service *Service, config HandlerConfig) (http.Handler, error) {
 	mux.Handle("POST /v1/orders/{id}/chargeback", admin(handleChargeback(service)))
 	mux.Handle("GET /v1/subscriptions/{id}/devices", admin(handleDevices(service)))
 	mux.Handle("DELETE /v1/subscriptions/{id}/devices/{install_id}", admin(handleRemoveDevice(service)))
-	mux.Handle("GET /v1/subscriptions/{id}/epoch", api(handleEpoch(service)))
+	// epoch 是公开端点：客户端 renewer 与 up 前刷新都要拉取撤销纪元，
+	// 而普通用户没有 API token（此前 api 鉴权导致生产环境静默 401 的死路径）。
+	// 暴露面仅 per-sub 计数器，订阅 ID 随机不可枚举，且受全局限流保护。
+	mux.Handle("GET /v1/subscriptions/{id}/epoch", public(handleEpoch(service)))
 	if config.Payment != nil {
 		mux.Handle("POST /v1/pay/activation-intent", public(handleActivationIntent(config.Payment)))
 	}

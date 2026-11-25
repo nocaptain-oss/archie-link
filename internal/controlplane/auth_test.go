@@ -26,6 +26,17 @@ func testHandler(t *testing.T) http.Handler {
 	return handler
 }
 
+func TestHandlerExposesEpochWithoutToken(t *testing.T) {
+	handler := testHandler(t)
+	req := httptest.NewRequest(http.MethodGet, "/v1/subscriptions/missing/epoch", nil)
+	recorder := httptest.NewRecorder()
+	handler.ServeHTTP(recorder, req)
+	// epoch 端点公开：无 token 须穿透到路由逻辑（缺失订阅返回 404 而非 401）。
+	if recorder.Code != http.StatusNotFound {
+		t.Fatalf("epoch without token must reach handler (404 for missing subscription), got %d", recorder.Code)
+	}
+}
+
 func TestHandlerRequiresScopedBearerTokens(t *testing.T) {
 	handler := testHandler(t)
 	request := func(path, token string) int {
