@@ -388,7 +388,7 @@ V1.0 前不重做完整浏览器。V1.1 再交付遥控器专用地址栏、搜�
   - 个人永久版（永久买断 `ONE_TIME`）与家庭年度（时长包 `ONE_TIME_DURATION`，周期 YEAR）：`purchase.consult` 查询访问决策；`PURCHASE_REQUIRED` 返回购买入口，`ALLOW` 视为已持有权益（幂等下单直接落账）
 - CLI 在终端直接渲染购买二维码（`purchase_qr_code` 优先，缺省用 `purchase_url` 生成），用户手机支付宝扫码支付，无需跳转浏览器；购买链接保留为后备展示
 - 支付确认由 CLI 轮询驱动（服务端 consult / quota 查询），无异步通知依赖；`external_buyer_id` 使用客户端 InstallID
-- 退款与撤销：权益由支付宝托管，平台退款/拒付/撤销事件后授权停止续租；管理员 chargeback 通道（状态撤销 + epoch++，全订单类型可用，2026-11-26 三档实测）；管理员 refund API 仅覆盖有 `provider_trade_no` 的订单（Machine Pay/PagePay），nowPay 直连订单退款能力缺口另立计划（[2026-11-26-nowpay-refund-capability](../plans/2026-11-26-nowpay-refund-capability.md)）；购款退款目前仅能支付宝商家后台手动操作，可退窗口无官方依据，产品与文档不作任何退款期限承诺；¥268 验收款已由用户手动退回（2026-11-26）
+- 退款与撤销：权益由支付宝托管，平台退款/拒付/撤销事件后授权停止续租；管理员 chargeback 通道（状态撤销 + epoch++，全订单类型可用，2026-11-26 三档实测）；管理员 refund API 仅覆盖有 `provider_trade_no` 的订单（Machine Pay/PagePay），nowPay 直连订单退款能力缺口另立计划（[2026-11-26-nowpay-refund-capability](../plans/2026-11-26-nowpay-refund-capability.md)）；购款退款目前仅能支付宝商家后台手动操作（官方退款接口上线前维持「手动退款+chargeback 撤销权益」现状），可退窗口无官方依据，产品与文档不作任何退款期限承诺；¥268 验收款已由用户手动退回（2026-11-26）
 - 原 `alipay.trade.page.pay` 通道（`FAST_INSTANT_TRADE_PAY`）代码保留为后备；「电脑网站支付」签约已提交（2026-11-24 SUBMITTED 等待生效），生效前不可用（2026-11-24 线上 40006 `isv.insufficient-isv-permissions` 现场）
 - 现有 Machine Pay 402 流程（`lease pay-intent`，服务单价上限 50 CNY）保留为兼容通道，新购买引导统一走 `buy`
 - 支付宝 AI 付款产品准入对比（2026-11-23 调研，2026-11-24 补充）：Machine Pay 服务注册单价硬上限 ¥50，无法承载 ¥69/¥199；PC Agent Pay 为买家侧产品，数字资源商家侧绕回 Machine Pay；SkillPay 无商家 webhook，无法自动签发租约；Token Pay 仅限企业账号；即刻收直连三种收费模式（买断/时长包/次数包）与三产品 1:1 对齐，托管购买页免自建电商页面，权益与核销由支付宝托管。
