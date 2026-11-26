@@ -24,7 +24,7 @@ public final class GuidedInstallActivity extends Activity {
     private LinearLayout marketSection;
     private LinearLayout manualSection;
     private TextView marketFallback;
-    private TextView gmsHint;
+    private View gmsHint;
     private TextView recheckHint;
 
     @Override
@@ -59,7 +59,7 @@ public final class GuidedInstallActivity extends Activity {
         if (recheckHint != null) {
             recheckHint.setVisibility(View.GONE);
         }
-        if (entry.browserPackage != null) {
+        if (entry != null && !ContentEntryStatus.NEEDS_BROWSER.equals(entry.status)) {
             finish();
         }
     }
@@ -238,16 +238,54 @@ public final class GuidedInstallActivity extends Activity {
     }
 
     private View gmsNote() {
-        gmsHint = PremiumUi.text(
-            this,
-            "这台电视没有 Google 服务，YouTube 客户端无法安装；"
-                + "装好浏览器后可直接使用 YouTube 网页版。",
-            16, PremiumUi.MIST, false
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(
+            PremiumUi.dp(this, 26), PremiumUi.dp(this, 22),
+            PremiumUi.dp(this, 26), PremiumUi.dp(this, 22)
         );
-        gmsHint.setGravity(Gravity.CENTER);
-        gmsHint.setLineSpacing(PremiumUi.dp(this, 5), 1f);
-        bodyParams(gmsHint, 26);
-        return gmsHint;
+        panel.setBackground(PremiumUi.rounded(PremiumUi.SURFACE, PremiumUi.STROKE, 1));
+        panel.setClipChildren(false);
+        panel.setClipToPadding(false);
+        bodyParams(panel, 26);
+        gmsHint = panel;
+        gmsHint.setVisibility(View.GONE);
+
+        TextView heading = PremiumUi.text(
+            this,
+            "YouTube 备选：" + ContentEntryStatus.SMARTTUBE_LABEL + "（无需 Google 服务）",
+            22, PremiumUi.SIGNAL, true
+        );
+        panel.addView(heading);
+
+        TextView intro = PremiumUi.text(
+            this,
+            "这台电视没有 Google 服务，官方 YouTube 客户端无法安装。"
+                + "SmartTube 是开源 YouTube 电视客户端，无需 Google 服务即可观看。",
+            17, PremiumUi.MIST, false
+        );
+        intro.setLineSpacing(PremiumUi.dp(this, 6), 1f);
+        intro.setPadding(0, PremiumUi.dp(this, 10), 0, 0);
+        panel.addView(intro);
+
+        String[] steps = new String[]{
+            "1. 在电脑浏览器搜索「SmartTube」，进入 GitHub 项目页（yuliskov/SmartTube）的 Releases 下载 APK",
+            "2. 注意：SmartTube 不在任何应用商店发布，市场内同名应用可能为仿冒，请只从官方 GitHub 发布页下载",
+            "3. 把 APK 拷贝到 U 盘，插入电视 USB 接口，用文件管理器安装（步骤同上方浏览器安装）",
+            "4. 安装完成后按返回键回到 ArchieLink，会自动识别"
+        };
+        int top = 14;
+        for (String step : steps) {
+            TextView line = PremiumUi.text(this, step, 17, PremiumUi.MIST, false);
+            line.setLineSpacing(PremiumUi.dp(this, 5), 1f);
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            );
+            params.topMargin = PremiumUi.dp(this, top);
+            panel.addView(line, params);
+            top = 10;
+        }
+        return panel;
     }
 
     private View footerButtons() {
@@ -264,7 +302,7 @@ public final class GuidedInstallActivity extends Activity {
             @Override
             public void onClick(View view) {
                 entry = ContentEntryDetector.detect(GuidedInstallActivity.this);
-                if (entry.browserPackage != null) {
+                if (!ContentEntryStatus.NEEDS_BROWSER.equals(entry.status)) {
                     finish();
                 } else {
                     recheckHint.setVisibility(View.VISIBLE);

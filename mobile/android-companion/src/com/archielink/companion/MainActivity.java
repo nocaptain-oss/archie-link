@@ -20,7 +20,6 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -36,7 +35,6 @@ public final class MainActivity extends Activity {
     private TextView entryView;
     private TextView codeView;
     private Button toggleButton;
-    private Button openBrowserButton;
     private Button guidedInstallButton;
     private ConnectionRouteView connectionView;
     private RpcServer server;
@@ -238,16 +236,6 @@ public final class MainActivity extends Activity {
             }
         });
         addActionButton(actions, manageApps, 8);
-
-        openBrowserButton = PremiumUi.secondaryButton(this, "打开浏览器");
-        openBrowserButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                openBrowser();
-            }
-        });
-        addActionButton(actions, openBrowserButton, 8);
-        openBrowserButton.setVisibility(View.GONE);
 
         guidedInstallButton = PremiumUi.secondaryButton(this, "安装浏览器引导");
         guidedInstallButton.setOnClickListener(new View.OnClickListener() {
@@ -517,35 +505,16 @@ public final class MainActivity extends Activity {
     }
 
     private void refreshEntryStatus() {
-        if (entryView == null || openBrowserButton == null || guidedInstallButton == null) {
+        if (entryView == null || guidedInstallButton == null) {
             return;
         }
         entryResult = ContentEntryDetector.detect(this);
         boolean needsBrowser = ContentEntryStatus.NEEDS_BROWSER.equals(entryResult.status);
+        entryView.setVisibility(needsBrowser ? View.VISIBLE : View.GONE);
+        guidedInstallButton.setVisibility(needsBrowser ? View.VISIBLE : View.GONE);
         if (needsBrowser) {
             entryView.setText("未检测到可用浏览器");
             entryView.setTextColor(PremiumUi.ORANGE);
-        } else if (ContentEntryStatus.READY_WITH_APP.equals(entryResult.status)) {
-            entryView.setText("内容入口：YouTube 客户端");
-            entryView.setTextColor(PremiumUi.MIST);
-        } else {
-            entryView.setText("内容入口：浏览器就绪");
-            entryView.setTextColor(PremiumUi.MIST);
-        }
-        openBrowserButton.setVisibility(
-            entryResult.browserPackage != null ? View.VISIBLE : View.GONE
-        );
-        guidedInstallButton.setVisibility(needsBrowser ? View.VISIBLE : View.GONE);
-    }
-
-    private void openBrowser() {
-        if (entryResult == null || entryResult.browserPackage == null) {
-            return;
-        }
-        try {
-            startActivity(ContentEntryDetector.openBrowserIntent(this, entryResult.browserPackage));
-        } catch (ActivityNotFoundException error) {
-            Toast.makeText(this, "浏览器无法启动", Toast.LENGTH_SHORT).show();
         }
     }
 

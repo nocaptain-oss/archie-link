@@ -139,6 +139,16 @@ No automatic lifecycle: `up`/`down`/`status`/`rollback` print a structured guide
 3. Kill-switch gotcha (real incident): with `AllowedIPs = 0.0.0.0/0` the app enables "Block untunneled traffic" by default and the machine stops answering LAN ping/SSH although the tunnel works. Untick it before activating; recover with `wireguard.exe /uninstalltunnelservice <name>`.
 4. Activate, verify the exit IP in a browser; deactivate from the app anytime.
 
+## Android TV companion (first connect)
+
+Installing the TV companion needs LAN ADB, which most Chinese TVs ship disabled. A human enables it with the remote — do not invent key sequences. Walk one path below (Hisense/Vidda differs by firmware generation), then take the workflow back:
+
+1. Newer Vidda (JUUI, e.g. Vidda X/R): 遥控器「设置」→「全部设置」→「通用」→「商场模式」→ 开；再「关于」→「版本号」→ 连按「确定」5 次开启开发者模式 → 返回 →「开发者模式/选项」→「ADB/网络调试」→ 开。
+2. Older Hisense VIDAA: 「设置」→「声音」→ 关闭杜比全景声（如有）→ 进入「声音平衡」界面 → 外接键盘输入 `1969`（或无数字键遥控器反复按「菜单+OK」）→ 屏显 `M` 进入工厂模式 → 按「菜单」→ 将 Tofac 由 U 改 M → 重启 → 设置「关于」上连按「菜单」4–5 次开隐藏菜单 →「版本号」连按「确定」→「开发者选项」→「USB 调试」→ 开。警告：M 模式下投屏等功能可能异常，安装完成后切回 U 模式。
+3. Generic Android TV: 「设置」→「设备偏好设置」→「关于」→ 连点「版本号」7 次 →「开发者选项」→「USB 调试/网络 ADB 调试」→ 开。
+
+Handback contract: the human confirms "ADB 已开启，电视 IP 是 <ip>"; then run `adb connect <ip>:5555`, have them approve the on-TV「允许 USB 调试」prompt (prefer 始终允许), verify with `adb devices`, and continue with `archielink device discover --json`. If the on-screen menus match none of the paths, ask the user what they see instead of guessing.
+
 ## Remote read-only sessions (cross-device)
 
 `archielink remote` runs a target device's read-only diagnostics from a controller over the LAN: TLS 1.3, temporary self-signed certificate, one-time 8-digit pairing code shown once on the target.

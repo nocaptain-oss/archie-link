@@ -55,15 +55,6 @@ public final class ContentEntryDetector {
         }
     }
 
-    /** Prefer the browser's own launcher entry; fall back to a plain web URL. */
-    public static Intent openBrowserIntent(Context context, String browserPackage) {
-        Intent launch = context.getPackageManager().getLaunchIntentForPackage(browserPackage);
-        if (launch != null) {
-            return launch;
-        }
-        return new Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com"));
-    }
-
     public static Intent marketSearchIntent(String query) {
         return new Intent(Intent.ACTION_VIEW, Uri.parse("market://search?q=" + Uri.encode(query)));
     }

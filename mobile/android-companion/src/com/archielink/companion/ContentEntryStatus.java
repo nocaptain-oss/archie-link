@@ -30,6 +30,21 @@ public final class ContentEntryStatus {
         "com.google.android.youtube"
     );
 
+    /**
+     * Open-source YouTube TV client that works without Google services.
+     * Current packages (org.smarttube.*, F-Droid) plus legacy
+     * com.liskovsoft.* names kept for devices with older installs.
+     */
+    public static final List<String> SMARTTUBE_PACKAGES = Arrays.asList(
+        "org.smarttube.stable",
+        "org.smarttube.beta",
+        "app.smarttube.fdroid",
+        "com.liskovsoft.smarttubetv",
+        "com.liskovsoft.smarttubetv.beta"
+    );
+
+    public static final String SMARTTUBE_LABEL = "SmartTube";
+
     /** Preference order for guided-install jump: Dangbei before Play on VIDAA-class TVs. */
     public static final List<String> MARKET_PACKAGES = Arrays.asList(
         "com.dangbei.market",
@@ -67,7 +82,8 @@ public final class ContentEntryStatus {
             && enabledPackages.contains(defaultBrowserPackage)) {
             browser = defaultBrowserPackage;
         }
-        boolean youtube = firstEnabled(YOUTUBE_PACKAGES, enabledPackages) != null;
+        boolean youtube = firstEnabled(YOUTUBE_PACKAGES, enabledPackages) != null
+            || firstEnabled(SMARTTUBE_PACKAGES, enabledPackages) != null;
         String market = firstEnabled(MARKET_PACKAGES, enabledPackages);
         if (market == null
             && marketHandlerPackage != null

@@ -47,6 +47,38 @@ public final class ContentEntryStatusTest {
             "YouTube client not ready_with_app"
         );
 
+        // SmartTube (open-source YouTube client, no GMS needed) is ready_with_app.
+        ContentEntryStatus.Result smarttube = ContentEntryStatus.decide(
+            enabled("org.smarttube.stable"),
+            null,
+            null
+        );
+        require(
+            ContentEntryStatus.READY_WITH_APP.equals(smarttube.status),
+            "SmartTube not ready_with_app"
+        );
+        require(smarttube.browserPackage == null, "browser invented for SmartTube");
+
+        // Legacy and F-Droid SmartTube packages still recognized.
+        ContentEntryStatus.Result legacySmarttube = ContentEntryStatus.decide(
+            enabled("com.liskovsoft.smarttubetv.beta"),
+            null,
+            null
+        );
+        require(
+            ContentEntryStatus.READY_WITH_APP.equals(legacySmarttube.status),
+            "legacy SmartTube not recognized"
+        );
+        ContentEntryStatus.Result fdroidSmarttube = ContentEntryStatus.decide(
+            enabled("app.smarttube.fdroid"),
+            null,
+            null
+        );
+        require(
+            ContentEntryStatus.READY_WITH_APP.equals(fdroidSmarttube.status),
+            "F-Droid SmartTube not recognized"
+        );
+
         // Unknown default handler still counts as a usable browser.
         ContentEntryStatus.Result unknown = ContentEntryStatus.decide(
             enabled("com.example.web", "com.archielink.companion"),

@@ -103,6 +103,8 @@ archielink lease status --json
 
 使用各自伴侣应用（见平台文档）；宿主侧 `device vpn-probe` 可检测设备端 VPN 槽位状态。
 
+Android TV 首次连接需先在电视上开启 ADB 调试（海信/Vidda 通常经「商场模式」或「声音平衡 1969 工厂模式」进入，详尽步骤见 [TV.md §5.3](../platform/TV.md)），随后电脑执行 `adb connect <电视IP>:5555`，并在电视端弹窗中允许调试授权。
+
 ## 8. 跨设备只读体检
 
 在目标设备开启一次性会话，从控制端做只读诊断（局域网内，TLS 1.3）：

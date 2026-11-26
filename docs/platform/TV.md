@@ -94,13 +94,18 @@
   （`com.android.browser`）、TV Bro（`io.github.tfederico.tvbro`）、
   Phlox（`com.phlox.tvwebbrowser`）、Firefox/Firefox TV、Chrome；
   默认 `http/https` handler 存在且可启动时即使不在清单内也计为可用浏览器。
-- 内容入口识别 YouTube TV 客户端（`com.google.android.youtube.tv` 等）。
+- 内容入口识别 YouTube TV 客户端（`com.google.android.youtube.tv` 等）与
+  SmartTube 开源客户端（`org.smarttube.stable` / `org.smarttube.beta` /
+  `app.smarttube.fdroid` 及旧版 `com.liskovsoft.smarttubetv` /
+  `com.liskovsoft.smarttubetv.beta`）。SmartTube 无需 Google 服务，
+  检测到即计 `ready_with_app`（V1.1.1 增量，2026-11-26 用户拍板）。
 - 应用市场识别用于引导安装：当贝市场（`com.dangbei.market` 等）与
   系统 market 包；存在时引导页提供一键跳转市场搜索。
-- 状态判定顺序：YouTube 客户端存在 → `ready_with_app`；有可用浏览器 →
-  `ready_with_browser`；两者皆无 → `needs_browser`（无论有无 GMS，先解决
-  浏览器；无 GMS 的设备在引导页提示 YouTube 客户端不可装、以浏览器网页
-  为主入口）。`needs_google_services` 保留为枚举，V1.1 不单独发出——仅当
+- 状态判定顺序：YouTube 客户端或 SmartTube 存在 → `ready_with_app`；
+  有可用浏览器 → `ready_with_browser`；两者皆无 → `needs_browser`
+  （无论有无 GMS，先解决浏览器；无 GMS 的设备在引导页提示 YouTube
+  客户端不可装，并提供 SmartTube 替代指引，见 §5.1）。
+  `needs_google_services` 保留为枚举，V1.1 不单独发出——仅当
   出现「浏览器可用但用户明确需要 YouTube 客户端」的场景时再启用。
 
 ### TV-004 最小浏览入口
@@ -146,6 +151,21 @@ V1.0 前只做最小闭环：
 - 推荐浏览器：TV Bro（用户 VIDAA 实机长期稳定）；系统浏览器可用时
   作为首选（免安装）
 
+V1.1.1 增量（2026-11-26 用户拍板）：
+
+- **SmartTube 引导**：无 GMS 设备的引导安装页在浏览器指引之外提供
+  SmartTube（开源 YouTube 电视客户端，无需 Google 服务）安装指引。
+  SmartTube 官方不在任何应用商店发布，市场内同名应用可能为仿冒；引导
+  只指向官方 GitHub Releases（`yuliskov/SmartTube`），不提供市场搜索
+  跳转。安装方式与浏览器手动路径一致（U 盘 + 文件管理器），全程不自动
+  下载、不静默安装。
+- **主界面简洁化**：内容入口就绪（`ready_with_app` / `ready_with_browser`）
+  时主界面不显示内容入口状态行与任何内容入口按钮，界面回归简洁；仅
+  `needs_browser` 时显示橙色警示状态行与"安装浏览器引导"按钮。V1.1 的
+  "打开浏览器"快捷入口随本增量移除——浏览器装好后用户从电视桌面直接
+  打开，无需经伴侣中转（原 §5.1"主界面提供打开浏览器快捷入口"条目废止）。
+- **首连 ADB 引导**：见 §5.3。
+
 明确不做：
 
 - 不内嵌浏览器内核，不做地址栏、扫码输入、UA 切换（原 V1.1 浏览器
@@ -159,14 +179,16 @@ TV 正式发布。
 
 验收（VIDAA 真机，Android 9）：
 
-1. `pm hide com.android.browser` 模拟无浏览器 → 主界面状态为
-   `needs_browser` → 引导安装页完整可达
-2. 恢复系统浏览器（`pm unhide`）→ 返回伴侣自动重检为
-   `ready_with_browser`
-3. "打开浏览器"入口启动系统浏览器，返回键回伴侣
+1. `pm disable-user --user 0` 模拟无浏览器（此 ROM `pm hide` 系统应用被
+   MANAGE_USERS 拒绝）→ 主界面状态为 `needs_browser` → 引导安装页完整可达
+2. 恢复系统浏览器（`pm enable`）→ 返回伴侣自动重检为 `ready_with_browser`
+3. "打开浏览器"入口启动系统浏览器，返回键回伴侣（V1.1.1 起该入口移除，
+   本条改为：就绪态主界面无内容入口状态行与按钮残留）
 4. 有市场设备路径：引导页跳转市场搜索（VIDAA 无当贝市场时以检测
    逻辑单测与文案审查替代真机步骤）
 5. 引导页全程遥控器可操作，焦点态清晰
+6. V1.1.1：安装 SmartTube 后重检为 `ready_with_app`，主界面无警示残留；
+   卸载后回到 `needs_browser` 警示（真机 adb install/uninstall 验证）
 
 ### 5.2 电视浏览器增强包（延后，可选）
 
@@ -186,6 +208,25 @@ TV 正式发布。
 - 广告和跟踪保护策略
 
 这些功能涉及浏览器内核、网页兼容、视频播放和遥控器交互，开发与测试成本明显高于 VPN 核心；仅在第三方浏览器方案无法满足用户时评估启动（2026-11-26 用户拍板：TV Bro 在 VIDAA 长期稳定，暂无启动动机）。
+
+### 5.3 首连 ADB 引导（V1.1.1，2026-11-26 用户拍板）
+
+电视伴侣的安装与配置依赖局域网 ADB；多数国内电视出厂未开启 ADB，
+首次连接必须由人类用遥控器完成开启动作，agent 不得编造键序。
+
+要求：
+
+- 详尽开启指引承载于 `skills/archie-link/SKILL.md` Android TV 节
+  （public），覆盖至少三条路径：新 Vidda（JUUI）的"商场模式 →
+  开发者模式"、老 VIDAA 的"声音平衡 1969 → 工厂模式 Tofac U→M →
+  隐藏开发者选项"和通用 Android TV 的"连点版本号"。老 VIDAA 工厂
+  模式路径必须附带 M 模式副作用警告（投屏等功能可能异常，完成后切回
+  U 模式）。
+- 引导必须形成交接闭环：人类确认"ADB 已开启 + 电视 IP"后，agent 接手
+  `adb connect <ip>:5555` → 人类在电视端批准"允许 USB 调试"（建议勾选
+  始终允许）→ agent 以 `adb devices` 验证后继续 `archielink device
+  discover --json`。任一步失败回到对应指引重试，不静默跳过。
+- 现场菜单与指引不符时，agent 向用户求证实际所见菜单，不猜测键序。
 
 ## 6. Android TV 边界
 
