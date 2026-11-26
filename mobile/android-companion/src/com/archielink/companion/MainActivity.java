@@ -20,6 +20,7 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -32,10 +33,14 @@ public final class MainActivity extends Activity {
     private final Handler handler = new Handler(Looper.getMainLooper());
     private TextView stateView;
     private TextView detailView;
+    private TextView entryView;
     private TextView codeView;
     private Button toggleButton;
+    private Button openBrowserButton;
+    private Button guidedInstallButton;
     private ConnectionRouteView connectionView;
     private RpcServer server;
+    private ContentEntryStatus.Result entryResult;
     private Runnable expiry;
     private Runnable refresh;
     private boolean startAfterAuthorization;
@@ -69,6 +74,7 @@ public final class MainActivity extends Activity {
     protected void onResume() {
         super.onResume();
         updateConnectionStatus();
+        refreshEntryStatus();
     }
 
     @Override
@@ -202,6 +208,11 @@ public final class MainActivity extends Activity {
         detailView.setPadding(0, PremiumUi.dp(this, 9), 0, 0);
         instrument.addView(detailView);
 
+        entryView = PremiumUi.text(this, "", 15, PremiumUi.MIST, false);
+        entryView.setGravity(Gravity.CENTER);
+        entryView.setPadding(0, PremiumUi.dp(this, 16), 0, 0);
+        instrument.addView(entryView);
+
         LinearLayout actions = new LinearLayout(this);
         actions.setOrientation(LinearLayout.VERTICAL);
         actions.setGravity(Gravity.CENTER_VERTICAL | Gravity.END);
@@ -227,6 +238,26 @@ public final class MainActivity extends Activity {
             }
         });
         addActionButton(actions, manageApps, 8);
+
+        openBrowserButton = PremiumUi.secondaryButton(this, "打开浏览器");
+        openBrowserButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                openBrowser();
+            }
+        });
+        addActionButton(actions, openBrowserButton, 8);
+        openBrowserButton.setVisibility(View.GONE);
+
+        guidedInstallButton = PremiumUi.secondaryButton(this, "安装浏览器引导");
+        guidedInstallButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                startActivity(new Intent(MainActivity.this, GuidedInstallActivity.class));
+            }
+        });
+        addActionButton(actions, guidedInstallButton, 8);
+        guidedInstallButton.setVisibility(View.GONE);
 
         Button clear = PremiumUi.secondaryButton(this, "清除已保存配置");
         clear.setOnClickListener(new View.OnClickListener() {
@@ -482,6 +513,39 @@ public final class MainActivity extends Activity {
         } else if (!pairingActive) {
             stateView.setText("等待配置");
             detailView.setText("请先用电脑完成首次配置");
+        }
+    }
+
+    private void refreshEntryStatus() {
+        if (entryView == null || openBrowserButton == null || guidedInstallButton == null) {
+            return;
+        }
+        entryResult = ContentEntryDetector.detect(this);
+        boolean needsBrowser = ContentEntryStatus.NEEDS_BROWSER.equals(entryResult.status);
+        if (needsBrowser) {
+            entryView.setText("未检测到可用浏览器");
+            entryView.setTextColor(PremiumUi.ORANGE);
+        } else if (ContentEntryStatus.READY_WITH_APP.equals(entryResult.status)) {
+            entryView.setText("内容入口：YouTube 客户端");
+            entryView.setTextColor(PremiumUi.MIST);
+        } else {
+            entryView.setText("内容入口：浏览器就绪");
+            entryView.setTextColor(PremiumUi.MIST);
+        }
+        openBrowserButton.setVisibility(
+            entryResult.browserPackage != null ? View.VISIBLE : View.GONE
+        );
+        guidedInstallButton.setVisibility(needsBrowser ? View.VISIBLE : View.GONE);
+    }
+
+    private void openBrowser() {
+        if (entryResult == null || entryResult.browserPackage == null) {
+            return;
+        }
+        try {
+            startActivity(ContentEntryDetector.openBrowserIntent(this, entryResult.browserPackage));
+        } catch (ActivityNotFoundException error) {
+            Toast.makeText(this, "浏览器无法启动", Toast.LENGTH_SHORT).show();
         }
     }
 

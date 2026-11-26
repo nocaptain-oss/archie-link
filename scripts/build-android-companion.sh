@@ -63,12 +63,15 @@ javac --release 8 \
 	"$source_dir/src/com/archielink/companion/WireGuardConfig.java" \
 	"$source_dir/src/com/archielink/companion/Ipv4Routes.java" \
 	"$source_dir/src/com/archielink/companion/VpnAppPolicy.java" \
+	"$source_dir/src/com/archielink/companion/ContentEntryStatus.java" \
 	"$source_dir/test/com/archielink/companion/WireGuardConfigTest.java" \
 	"$source_dir/test/com/archielink/companion/Ipv4RoutesTest.java" \
-	"$source_dir/test/com/archielink/companion/VpnAppPolicyTest.java"
+	"$source_dir/test/com/archielink/companion/VpnAppPolicyTest.java" \
+	"$source_dir/test/com/archielink/companion/ContentEntryStatusTest.java"
 java -cp "$build_dir/config-test" com.archielink.companion.WireGuardConfigTest
 java -cp "$build_dir/config-test" com.archielink.companion.Ipv4RoutesTest
 java -cp "$build_dir/config-test" com.archielink.companion.VpnAppPolicyTest
+java -cp "$build_dir/config-test" com.archielink.companion.ContentEntryStatusTest
 
 "$sdk/cmdline-tools/latest/bin/d8" \
 	--lib "$platform" \
