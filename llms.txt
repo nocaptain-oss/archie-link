@@ -1,0 +1,32 @@
+# 汪连 ArchieLink
+
+> 跨平台网络体检与外网连接恢复 CLI（macOS/Windows/Linux）：先体检、再经 Cloudflare WARP/WireGuard 安全连接，失败自动回滚。内置 Claude Code/Codex 可安装的 Agent 技能与鸿蒙/Android 伴生应用。source-available；付费解锁一键连接与完整导出。
+>
+> ArchieLink is a cross-platform CLI that runs a read-only network health check, then establishes foreign-network connectivity via Cloudflare WARP / WireGuard with snapshot, coexistence gate, health verification and deterministic auto-rollback. Ships installable agent skills and HarmonyOS / Android companions. Source-available; paid activation unlocks one-command connect and full config export.
+
+## 安装
+
+- [README「安装」节](README.md#安装): 四平台二进制、SHA256SUMS 校验、Gatekeeper/SmartScreen 指引
+- [Releases v1.1.0](https://github.com/nocaptain-oss/archie-link/releases): 二进制 + `SHA256SUMS` + `release-manifest.json` + `sbom.cdx.json`
+- AI Agent 技能：`npx skills add nocaptain-oss/archie-link@archie-link`（或 `cp -R`，见 README）
+
+## Agent 技能
+
+- [archie-link 技能](skills/archie-link/SKILL.md): 体检 → 连接 → 回滚全流程；中文触发场景：外网访问、科学上网、翻墙、GFW、VPN 连不上等
+- [archie-link-doctor 技能](skills/archie-link-doctor/SKILL.md): 只读网络诊断（不改系统设置）；中文触发场景：网络体检、网络诊断、VPN 排查等
+
+## 必读
+
+- [产品规格 SPEC](docs/product/SPEC.md): 行为事实源
+- [用户手册 USER-GUIDE](docs/product/USER-GUIDE.md): 命令用法
+- [隐私政策 PRIVACY](docs/product/PRIVACY.md): 数据边界，官方支持邮箱 vcaptain@126.com
+- [故障排查 TROUBLESHOOTING](docs/product/TROUBLESHOOTING.md)
+
+## 可选
+
+- [商业信任与授权架构](docs/architecture/COMMERCIAL-TRUST.md)
+- [网络共存与断网防护](docs/architecture/COEXISTENCE.md)
+- [跨设备协作](docs/architecture/CROSS-DEVICE.md)
+- [支持矩阵](docs/product/SUPPORT-MATRIX.md) · [路线图](docs/product/ROADMAP.md) · [商业逻辑](docs/product/BUSINESS-CASE.md)
+- 平台：[鸿蒙](docs/platform/HARMONYOS.md) · [Windows](docs/platform/WINDOWS.md) · [Linux](docs/platform/LINUX.md) · [TV](docs/platform/TV.md)
+- 产品页：https://nocaptain-oss.github.io/archie-link/

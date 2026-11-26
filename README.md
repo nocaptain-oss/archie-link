@@ -1,10 +1,22 @@
 # 汪连 ArchieLink｜外网访问专家
 
-跨平台外网访问、网络体检与连接恢复 CLI，配套鸿蒙 / Android 伴生应用。技术后端：Cloudflare WARP / WireGuard / wgcf（仅作技术后端，不替换产品名）。
+> **是什么：** 跨平台网络体检与外网连接恢复 CLI——先体检、再连接，失败自动还原；配套可安装的 AI Agent 技能与鸿蒙 / Android 伴生应用。
+>
+> **English:** ArchieLink is a cross-platform CLI (macOS/Windows/Linux) that runs a read-only network health check, then establishes foreign-network connectivity via Cloudflare WARP / WireGuard with snapshot, coexistence gate, health verification and deterministic auto-rollback. Ships installable agent skills (Claude Code / Codex) and HarmonyOS / Android companions. Source-available; paid activation unlocks one-command connect and full config export.
+
+技术后端：Cloudflare WARP / WireGuard / wgcf（仅作技术后端，不替换产品名）。
 
 Archie 是一只网络专家狗：先闻 DNS、再看路由、检查代理和本地服务；能连就安全连接，连不上就原路还原。
 
-> **命名状态：** 暂定工作名，见 [NAMING.md](docs/product/NAMING.md)。
+> **命名状态：** 暂定工作名，见 [NAMING.md](docs/product/NAMING.md)。Agent 可读索引见 [llms.txt](llms.txt)。
+
+## 适用场景
+
+- Google 打不开、YouTube 连不上、GitHub 连接失败、外网访问受阻——想要确定性的「体检 → 连接 → 回滚」流程
+- 科学上网 / 翻墙方案从手工折腾换成可自检、可回滚的 CLI（线路为 Cloudflare WARP 免费层，产品收取的是技术服务费）
+- 已有 WARP / WireGuard 但 VPN 连不上，需要 VPN 排查 / VPN 修复
+- 机场 / 梯子 不稳定，想要可自检、可回滚的自建替代
+- AI Agent（Claude Code / Codex 等）需要可编程的外网连接与只读诊断能力
 
 ## 核心能力
 
@@ -54,7 +66,21 @@ Linux 从源码构建：`go build ./cmd/archielink`（见下文「从源码构�
 
 ### AI Agent 技能（Claude Code / Codex 等）
 
-本仓库 [`skills/`](skills/) 内置技能定义，让 AI Agent 按用户手册直接操作 ArchieLink：
+本仓库 [`skills/`](skills/) 内置两个可安装的 Agent 技能：
+
+| 技能 | 用途 |
+|---|---|
+| [`archie-link`](skills/archie-link/SKILL.md) | 体检 → 连接 → 回滚全流程操作 |
+| [`archie-link-doctor`](skills/archie-link-doctor/SKILL.md) | 只读网络诊断（不改系统设置） |
+
+方式一（skills CLI）：
+
+```bash
+npx skills add nocaptain-oss/archie-link@archie-link
+npx skills add nocaptain-oss/archie-link@archie-link-doctor
+```
+
+方式二（手动复制）：
 
 ```bash
 git clone https://github.com/nocaptain-oss/archie-link.git
@@ -83,7 +109,7 @@ archielink buy family-annual-12  # 家庭年度（12 设备）¥69
 - [用户手册](docs/product/USER-GUIDE.md) · [故障排查](docs/product/TROUBLESHOOTING.md) · [支持矩阵](docs/product/SUPPORT-MATRIX.md) · [隐私政策](docs/product/PRIVACY.md)
 - [商业信任与授权架构](docs/architecture/COMMERCIAL-TRUST.md) · [网络共存与断网防护](docs/architecture/COEXISTENCE.md) · [跨设备协作](docs/architecture/CROSS-DEVICE.md)
 - [鸿蒙平台](docs/platform/HARMONYOS.md) · [Windows](docs/platform/WINDOWS.md) · [Linux](docs/platform/LINUX.md) · [TV](docs/platform/TV.md)
-- [第三方声明](THIRD_PARTY_NOTICES.md)
+- [第三方声明](THIRD_PARTY_NOTICES.md) · Agent 可读索引：[llms.txt](llms.txt)
 
 ## 安全边界
 
@@ -91,6 +117,11 @@ archielink buy family-annual-12  # 家庭年度（12 设备）¥69
 - 自动连接必须经过共存 Gate、快照、健康检查和自动回滚
 - 正式 Release 不含测试授权、运行时公钥覆盖或故障注入代码
 - 云端只承载订单、授权、设备、撤销和持续增值，不承载用户流量或本地秘密
+
+## 支持
+
+- 官方支持邮箱：[vcaptain@126.com](mailto:vcaptain@126.com)（授权问题、数据删除申请、隐私问询）
+- [故障排查](docs/product/TROUBLESHOOTING.md) · [支持矩阵](docs/product/SUPPORT-MATRIX.md)
 
 ## 从源码构建
 
@@ -105,3 +136,7 @@ go vet ./...
 ## 许可
 
 本仓库源码仅作透明度公开（source-available），保留所有权利，见 [LICENSE](LICENSE)。
+
+---
+
+最近更新：2026-11-26（Agent AEO：skills.sh 双通道安装、llms.txt、AGENTS.md、About 元数据）
