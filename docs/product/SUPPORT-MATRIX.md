@@ -39,7 +39,7 @@ macOS 分发注记：Developer ID 签名/公证阻塞于 Apple Developer 账号�
 | 平台 | 最低版本 | 形态 | 验证 | 证据（本地归档） |
 |---|---|---|---|---|
 | HarmonyOS 手机/平板（伴侣 HAP `0.5.0-d3`，bundleName `com.archielink.companion`） | API 23+（minSdk 6.1.0(23)） | 伴侣应用（`VpnExtensionAbility` + ArkTS WireGuard 数据面） | T1：BRA-AL00（HarmonyOS 7.0.0.111, API 26）生产化收工（rekey/看门狗/保活/冲突检测/HRM-001 vpn-probe）；T2：MatePad Pro Max 悦享（授权流）、Mate 60 Pro（兼容 16 项 + UX）、Mate 90 Pro、Mate XT（转场 + 留白复测） | `mobile/harmony-companion/artifacts/harmony-companion/cloud-test/` |
-| Android TV（TV companion `0.5.1`） | Android 9（API 28） | TV 伴侣 APK（`VpnService`；V1.1 增 TV-003 内容入口检测 + 无浏览器引导安装页 + SmartTube 检测/引导（V1.1.1），随调试包免费；就绪态主界面隐藏内容入口状态行） | T1：海信 VIDAA（MTK9255，Android 9，armeabi-v7a，无 root）D2 整体验收——VPN、遥控器、YouTube 搜索、白名单；V1.1/V1.1.1 引导安装按 TV.md §5.1 验收 | TV.md 验收记录 |
+| Android TV（TV companion `0.5.2`） | Android 9（API 28） | TV 伴侣 APK（`VpnService`；V1.1 增 TV-003 内容入口检测 + 无浏览器引导安装页 + SmartTube 检测/引导（V1.1.1）+ 首次连接「Hello World」仪式（V1.1.2），随调试包免费；就绪态主界面隐藏内容入口状态行） | T1：海信 VIDAA（MTK9255，Android 9，armeabi-v7a，无 root）D2 整体验收——VPN、遥控器、YouTube 搜索、白名单；V1.1/V1.1.1 引导安装按 TV.md §5.1 验收；V1.1.2 仪式按 TV.md §5.4 验收 | TV.md 验收记录 |
 | Android 手机/平板（D1 伴侣 APK） | — | 伴侣应用（`VpnService` + AndroidKeyStore） | T1：真实 WARP、ADB 共存、应用白名单、断开清理、UI 验收 | PROJECT-MEMORY D1 条目 |
 | iOS / iPadOS（零伴侣轨道 D4） | iOS/iPadOS 15（官方 WireGuard App 当前要求） | 官方 WireGuard App + 宿主 `export` 配置导入（conf/二维码） | T1：iPad 第 7 代 / iPadOS 18.7.1 / WireGuard 1.0.16（港区）——conf AirDrop 导入 + **iPad 扫码全链路 PASS**（V0.10：`export --format qrcode` → 扫码 → 导入 → 握手 → 外网）；手机档 iPhone 未验（流程同源） | `artifacts/d4-ios/`、`artifacts/v0.10-mobile/` |
 

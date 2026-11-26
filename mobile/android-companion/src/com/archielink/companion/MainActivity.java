@@ -3,10 +3,12 @@ package com.archielink.companion;
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.ActivityNotFoundException;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.net.VpnService;
 import android.os.Build;
 import android.os.Bundle;
@@ -20,6 +22,7 @@ import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -43,6 +46,10 @@ public final class MainActivity extends Activity {
     private Runnable refresh;
     private boolean startAfterAuthorization;
     private boolean pairingActive;
+    private boolean resumed;
+    private Dialog ceremonyDialog;
+    private boolean ceremonyDismissedByPause;
+    private boolean sessionDismissed;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,8 +78,20 @@ public final class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        updateConnectionStatus();
+        resumed = true;
         refreshEntryStatus();
+        updateConnectionStatus();
+    }
+
+    @Override
+    protected void onPause() {
+        resumed = false;
+        if (ceremonyDialog != null) {
+            ceremonyDismissedByPause = true;
+            ceremonyDialog.dismiss();
+            ceremonyDismissedByPause = false;
+        }
+        super.onPause();
     }
 
     @Override
@@ -501,6 +520,126 @@ public final class MainActivity extends Activity {
         } else if (!pairingActive) {
             stateView.setText("等待配置");
             detailView.setText("请先用电脑完成首次配置");
+        }
+        maybeShowCeremony(connected, health);
+    }
+
+    /**
+     * First-connect "Hello World" ceremony: docs/platform/TV.md §5.4.
+     * The user must press the remote's confirm key personally — the app
+     * never opens the browser on its own.
+     */
+    private void maybeShowCeremony(boolean connected, String health) {
+        if (!resumed || ceremonyDialog != null || sessionDismissed) {
+            return;
+        }
+        boolean browserPresent = entryResult != null && entryResult.browserPackage != null;
+        boolean done = getSharedPreferences("ceremony", MODE_PRIVATE)
+            .getBoolean("first_visit_done", false);
+        if (!ContentEntryStatus.firstVisitCeremonyDue(
+            connected && "pass".equals(health), browserPresent, done
+        )) {
+            return;
+        }
+        showCeremonyDialog();
+    }
+
+    private void showCeremonyDialog() {
+        final Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        LinearLayout panel = new LinearLayout(this);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setGravity(Gravity.CENTER_HORIZONTAL);
+        panel.setPadding(
+            PremiumUi.dp(this, 44), PremiumUi.dp(this, 38),
+            PremiumUi.dp(this, 44), PremiumUi.dp(this, 34)
+        );
+        panel.setBackground(PremiumUi.rounded(PremiumUi.SURFACE, PremiumUi.STROKE, 1));
+        panel.setClipChildren(false);
+        panel.setClipToPadding(false);
+
+        TextView title = PremiumUi.text(this, "第一次连接成功", 34, PremiumUi.CHALK, true);
+        title.setGravity(Gravity.CENTER);
+        panel.addView(title);
+
+        TextView message = PremiumUi.text(
+            this,
+            "安全隧道已经建立。按下遥控器的确认键，打开浏览器——和这台电视一起，亲眼看看外面的世界。",
+            18, PremiumUi.MIST, false
+        );
+        message.setGravity(Gravity.CENTER);
+        message.setLineSpacing(PremiumUi.dp(this, 6), 1f);
+        message.setPadding(0, PremiumUi.dp(this, 18), 0, PremiumUi.dp(this, 30));
+        panel.addView(message);
+
+        Button open = PremiumUi.primaryButton(this, "打开新世界");
+        open.setMinHeight(0);
+        open.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if (launchCeremonyBrowser()) {
+                    getSharedPreferences("ceremony", MODE_PRIVATE)
+                        .edit().putBoolean("first_visit_done", true).commit();
+                } else {
+                    Toast.makeText(MainActivity.this, "浏览器启动失败，请重试", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                dialog.dismiss();
+            }
+        });
+        panel.addView(open, new LinearLayout.LayoutParams(
+            PremiumUi.dp(this, 320), PremiumUi.dp(this, 58)
+        ));
+
+        TextView hint = PremiumUi.text(this, "按返回键跳过", 13, PremiumUi.MIST, false);
+        hint.setGravity(Gravity.CENTER);
+        hint.setPadding(0, PremiumUi.dp(this, 16), 0, 0);
+        panel.addView(hint);
+
+        dialog.setContentView(panel);
+        dialog.setCanceledOnTouchOutside(false);
+        dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+            @Override
+            public void onDismiss(DialogInterface dialogInterface) {
+                ceremonyDialog = null;
+                if (!ceremonyDismissedByPause) {
+                    sessionDismissed = true;
+                }
+            }
+        });
+        ceremonyDialog = dialog;
+        PremiumUi.showDialog(dialog, 640);
+        open.requestFocus();
+    }
+
+    private boolean launchCeremonyBrowser() {
+        Uri target = Uri.parse(ContentEntryStatus.CEREMONY_URL);
+        String browser = entryResult != null ? entryResult.browserPackage : null;
+        if (browser != null) {
+            Intent direct = new Intent(Intent.ACTION_VIEW, target);
+            direct.setPackage(browser);
+            if (tryStart(direct)) {
+                return true;
+            }
+        }
+        if (tryStart(new Intent(Intent.ACTION_VIEW, target))) {
+            return true;
+        }
+        if (browser != null) {
+            Intent launch = getPackageManager().getLaunchIntentForPackage(browser);
+            if (launch != null && tryStart(launch)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean tryStart(Intent intent) {
+        try {
+            startActivity(intent);
+            return true;
+        } catch (RuntimeException error) {
+            return false;
         }
     }
 

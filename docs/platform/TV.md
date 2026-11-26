@@ -90,10 +90,14 @@
 实施契约（2026-11-26 定稿，随浏览器引导安装一并实现）：
 
 - 检测在 TV 伴侣内完成，输入为 `PackageManager` 已安装包查询，不发起网络请求。
-- 浏览器识别采用已知包名清单 + 默认 URL handler 兜底：系统浏览器
-  （`com.android.browser`）、TV Bro（`io.github.tfederico.tvbro`）、
-  Phlox（`com.phlox.tvwebbrowser`）、Firefox/Firefox TV、Chrome；
-  默认 `http/https` handler 存在且可启动时即使不在清单内也计为可用浏览器。
+- 浏览器识别采用已知包名清单 + 默认 URL handler 兜底。**选择优先级：
+  电视原生、遥控器友好的浏览器在前**（V1.1.2 增量修正，2026-11-26
+  用户人工验证发现系统浏览器需鼠标操作，毁了仪式时刻）：TV Bro
+  （`io.github.tfederico.tvbro`）→ Phlox（`com.phlox.tvwebbrowser`）
+  → Firefox TV → Firefox → Chrome → 系统浏览器
+  （`com.android.browser`，鼠标/触屏向，仅作最后兜底）；默认
+  `http/https` handler 存在且可启动时即使不在清单内也计为可用浏览器
+  （兜底场景，仪式体验不保证）。
 - 内容入口识别 YouTube TV 客户端（`com.google.android.youtube.tv` 等）与
   SmartTube 开源客户端（`org.smarttube.stable` / `org.smarttube.beta` /
   `app.smarttube.fdroid` 及旧版 `com.liskovsoft.smarttubetv` /
@@ -227,6 +231,49 @@ TV 正式发布。
   始终允许）→ agent 以 `adb devices` 验证后继续 `archielink device
   discover --json`。任一步失败回到对应指引重试，不静默跳过。
 - 现场菜单与指引不符时，agent 向用户求证实际所见菜单，不猜测键序。
+
+### 5.4 首次连接「Hello World」仪式（V1.1.2，2026-11-26 用户拍板）
+
+VPN 通道在电视上首次健康连接成功是产品的「Hello World」时刻：引导用户
+亲手按遥控器确认键打开浏览器 Google 页面，亲眼看见网页加载——用仪式感
+强化「付费是值得的」。这个瞬间只有浏览器能创造（视频应用给不了）。
+
+契约：
+
+- 触发条件（三者同时满足，持久化标志 `first_visit_done` 控制）：
+  ① VPN `connected` 且健康检查 `pass`；② 存在可用浏览器
+  （`browserPackage != null`，SmartTube-only 设备不触发——仪式瞬间属于
+  浏览器）；③ 本机从未完成过该仪式。
+- 呈现：主界面叠加全屏仪式层（半透明暗背景 + 居中卡片）：庆祝文案、
+  说明文案、主按钮「打开新世界」（显示时自动获得焦点，遥控器确认键
+  即激活）、「按返回键跳过」提示。文案遵循 NAMING.md（不使用翻墙/
+  机场/梯子/突破限制等禁词）。
+- 按确认键：持久化完成标志 → 以 `ACTION_VIEW
+  https://www.google.com` 打开检测到的浏览器（地址栏直接呈现
+  Google 地址，等同自动注入；URL 加载即「新世界」瞬间）→ 返回键回
+  伴侣。启动失败（ActivityNotFoundException 等）提示且不置完成标志，
+  可重试。
+- 按返回键：本次会话内跳过（不持久化完成标志）——误按返回不会永久
+  失去仪式；下次连接周期可再现。按确认键完成才是永久完成。
+- 不自动打开浏览器：用户亲手按确认键是仪式的核心，agent/应用不得
+  代劳。
+- 仪式打开的浏览器按 §4 电视原生优先级选取（V1.1.2 增量修正，
+  2026-11-26 用户人工验证发现系统浏览器需鼠标操作，毁了仪式时刻；
+  该电视实况 Phlox 在装，仪式改用 Phlox 类遥控器友好浏览器）。
+- 已知限制：Google 首页在仪式中正常加载（「新世界」瞬间成立）；
+  继续搜索时 Google 可能因 WireGuard/WARP 共享出口 IP 信誉弹出
+  人机验证页，且验证页未必可用遥控器完成——仪式目标是首页加载本身，
+  不承诺搜索无验证；此为免费线路的固有行为，不在伴侣侧规避。
+- 无浏览器设备不触发（`needs_browser` 引导安装流程另行覆盖；装好
+  浏览器并首次健康连接后仪式自然到来）。
+
+验收（VIDAA 真机）：
+
+1. 清除仪式标志（或首次安装态）→ 真按键连接 VPN → 健康通过后仪式层
+   出现，主按钮带焦点
+2. 按确认键 → 浏览器打开 Google 页面 → 返回键回伴侣 → 仪式层消失
+3. 断开重连 → 仪式层不再出现（标志已持久化）
+4. 返回键跳过路径：清除标志重现仪式 → 按返回键 → 本次会话不再出现
 
 ## 6. Android TV 边界
 

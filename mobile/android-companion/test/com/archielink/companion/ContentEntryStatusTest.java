@@ -24,6 +24,31 @@ public final class ContentEntryStatusTest {
         require(!vidaa.gmsPresent, "GMS wrongly detected");
         require(vidaa.marketPackage == null, "market invented");
 
+        // V1.1.2 amendment: TV-native browsers outrank the mouse-oriented
+        // system browser for the ceremony moment (TV.md §4/§5.4).
+        ContentEntryStatus.Result tvPriority = ContentEntryStatus.decide(
+            enabled("com.android.browser", "com.phlox.tvwebbrowser"),
+            "com.android.browser",
+            null
+        );
+        require(
+            "com.phlox.tvwebbrowser".equals(tvPriority.browserPackage),
+            "Phlox TV browser must outrank system browser"
+        );
+        ContentEntryStatus.Result broFirst = ContentEntryStatus.decide(
+            enabled(
+                "io.github.tfederico.tvbro",
+                "com.phlox.tvwebbrowser",
+                "com.android.browser"
+            ),
+            "com.android.browser",
+            null
+        );
+        require(
+            "io.github.tfederico.tvbro".equals(broFirst.browserPackage),
+            "TV Bro must be the top browser pick"
+        );
+
         // pm hide simulation: system browser hidden, nothing else installed.
         ContentEntryStatus.Result hidden = ContentEntryStatus.decide(
             enabled("com.archielink.companion"),
@@ -94,15 +119,16 @@ public final class ContentEntryStatusTest {
             "unknown handler not reported"
         );
 
-        // TV Bro recognized without being the default handler.
+        // TV Bro recognized without being the default handler; V1.1.2
+        // amendment: TV-native pick outranks the system browser.
         ContentEntryStatus.Result tvbro = ContentEntryStatus.decide(
             enabled("io.github.tfederico.tvbro", "com.android.browser"),
             null,
             null
         );
         require(
-            "com.android.browser".equals(tvbro.browserPackage),
-            "system browser should outrank TV Bro"
+            "io.github.tfederico.tvbro".equals(tvbro.browserPackage),
+            "TV Bro should outrank system browser (V1.1.2 amendment)"
         );
 
         // Hidden system browser, TV Bro still installed: TV Bro picked.
@@ -159,6 +185,7 @@ public final class ContentEntryStatusTest {
             "empty device not needs_browser"
         );
 
+        requireCeremony();
         System.out.println("content-entry-status-test: PASS");
     }
 
@@ -170,5 +197,29 @@ public final class ContentEntryStatusTest {
         if (!value) {
             throw new AssertionError(message);
         }
+    }
+
+    /** TV.md §5.4: first-connect ceremony trigger matrix. */
+    private static void requireCeremony() {
+        require(
+            ContentEntryStatus.firstVisitCeremonyDue(true, true, false),
+            "first healthy connect with browser must fire ceremony"
+        );
+        require(
+            !ContentEntryStatus.firstVisitCeremonyDue(false, true, false),
+            "not-yet-healthy connect must not fire ceremony"
+        );
+        require(
+            !ContentEntryStatus.firstVisitCeremonyDue(true, false, false),
+            "browser-less device must not fire ceremony"
+        );
+        require(
+            !ContentEntryStatus.firstVisitCeremonyDue(true, true, true),
+            "completed ceremony must not fire again"
+        );
+        require(
+            "https://www.google.com".equals(ContentEntryStatus.CEREMONY_URL),
+            "ceremony URL drifted from TV.md §5.4"
+        );
     }
 }

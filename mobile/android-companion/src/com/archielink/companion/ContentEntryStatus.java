@@ -15,14 +15,19 @@ public final class ContentEntryStatus {
     public static final String READY_WITH_BROWSER = "ready_with_browser";
     public static final String NEEDS_BROWSER = "needs_browser";
 
-    /** Preference order: system browser first (free), then long-term verified picks. */
+    /**
+     * Preference order: TV-native, remote-friendly browsers first — the
+     * first-connect ceremony launches this browser, and a mouse-oriented
+     * system browser ruins the ritual moment (V1.1.2 amendment,
+     * docs/platform/TV.md §4/§5.4). System browser is the last fallback.
+     */
     public static final List<String> KNOWN_BROWSERS = Arrays.asList(
-        "com.android.browser",
         "io.github.tfederico.tvbro",
         "com.phlox.tvwebbrowser",
         "org.mozilla.firefox_tv",
         "org.mozilla.firefox",
-        "com.android.chrome"
+        "com.android.chrome",
+        "com.android.browser"
     );
 
     public static final List<String> YOUTUBE_PACKAGES = Arrays.asList(
@@ -54,6 +59,13 @@ public final class ContentEntryStatus {
     public static final String GMS_PACKAGE = "com.google.android.gms";
     public static final String RECOMMENDED_BROWSER_PACKAGE = "io.github.tfederico.tvbro";
     public static final String RECOMMENDED_BROWSER_LABEL = "TV Bro";
+
+    /**
+     * First-connect "Hello World" ceremony target: the page the browser
+     opens when the user presses the remote's confirm key.
+     * Contract: docs/platform/TV.md §5.4 (2026-11-26).
+     */
+    public static final String CEREMONY_URL = "https://www.google.com";
 
     public static final class Result {
         public final String status;
@@ -100,6 +112,20 @@ public final class ContentEntryStatus {
             status = NEEDS_BROWSER;
         }
         return new Result(status, browser, market, gms);
+    }
+
+    /**
+     * First-connect ceremony trigger: fires once per device, only when the
+     * VPN is connected + healthy and a browser exists to open. SmartTube-only
+     * devices do not fire — the ritual moment belongs to the browser.
+     * Contract: docs/platform/TV.md §5.4 (2026-11-26).
+     */
+    public static boolean firstVisitCeremonyDue(
+        boolean connectedHealthy,
+        boolean browserPresent,
+        boolean ceremonyDone
+    ) {
+        return connectedHealthy && browserPresent && !ceremonyDone;
     }
 
     private static String firstEnabled(List<String> candidates, Set<String> enabled) {
