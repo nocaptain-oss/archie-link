@@ -19,6 +19,7 @@ mkdir -p "$stage/archie-link"
 cp -R "$root/skills/archie-link/." "$stage/archie-link/"
 
 find "$stage" -name '__pycache__' -type d -prune -exec rm -rf {} +
+command -v xattr >/dev/null 2>&1 && xattr -cr "$stage"
 find "$stage" -type f \( \
 	-name '.DS_Store' -o \
 	-name 'credentials.json' -o \
@@ -33,6 +34,6 @@ find "$stage" -type f \( \
 rm -f "$output"
 (
 	cd "$stage"
-	zip -qr "$output" archie-link
+	zip -Xqr "$output" archie-link
 )
 printf '%s\n' "$output"

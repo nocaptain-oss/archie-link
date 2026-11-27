@@ -2,6 +2,7 @@
 name: archie-link-doctor
 description: "Diagnose network reachability and WARP fallback eligibility without changing system settings. Use when a person or agent needs read-only DNS, route, proxy, tunnel, local-service, or foreign-endpoint diagnosis before deciding whether to install a network fallback. 中文触发场景：网络体检、网络诊断、检查网络环境、网络排查、外网访问诊断、GitHub 连不上排查、连不上外网先检查、VPN 排查、VPN 诊断。"
 metadata:
+  version: "1.1.0"
   short-description: "Read-only network diagnosis for agent environments"
   triggers:
     - 网络体检
@@ -17,11 +18,11 @@ metadata:
 
 # ArchieLink Doctor
 
-Run the installed `archielink` binary. Do not reproduce its network checks with ad-hoc commands.
+Run the installed `archielink` CLI. Do not reproduce its network checks with ad-hoc commands.
 
 ## Prerequisites: the `archielink` CLI
 
-Check first: `command -v archielink`. This skill ships without the binary. If it is missing, install it from the official GitHub repository — download the platform binary from <https://github.com/nocaptain-oss/archie-link/releases> (v1.1.0+), verify against the Release's `SHA256SUMS`, and put it on `PATH`; see <https://github.com/nocaptain-oss/archie-link#安装>. Do not run substitute commands; if the CLI cannot be installed, report that read-only diagnosis is unavailable on this host.
+Check first: `command -v archielink`. This skill does not ship the CLI. If it is missing, stop and point the user to the official install guide: <https://github.com/nocaptain-oss/archie-link#安装> (GitHub Releases with `SHA256SUMS`). The user installs the CLI themselves. Do not run substitute commands; do not install software for the user; if the CLI is unavailable, report that read-only diagnosis is unavailable on this host.
 
 The tool is read-only. It must not modify DNS, routes, proxies, or VPN state.
 
@@ -54,4 +55,4 @@ archielink coexist gate --json
 - Never describe `ready` as connected.
 - Report the stable finding codes before suggesting the next step.
 - Treat `foreign_endpoint_unreachable` as evidence of a network problem, not proof that WARP will fix it.
-- Route any implementation or setup request to the full `archie-link` skill — same CLI, adds guarded connect/rollback and optional paid activation — only after the user explicitly asks to continue. If it is not installed, get it from the same GitHub repository or SkillHub (`archie-link`).
+- Route any implementation or setup request to the full `archie-link` skill — same CLI, adds guarded connect/rollback — only after the user explicitly asks to continue. If it is not installed, get it from the same GitHub repository or SkillHub (`archie-link`).

@@ -1093,7 +1093,6 @@ struct Index {
       const context = this.getUIContext().getHostContext() as common.UIAbilityContext;
       const documentPicker = new picker.DocumentViewPicker(context);
       const uris = await documentPicker.select({
-        fileSuffixFilters: ['.conf', '.wg', '.txt', '.ovpn'],
         maxSelectNumber: 1
       });
       if (!uris || uris.length === 0) {
@@ -1281,13 +1280,33 @@ struct Index {
 
   private async connectVPN(): Promise<void> {
     if (!this.configured) {
-      this.goToPage('settings');
-      this.detail = '请先导入有效的 WireGuard .conf 文件。';
+      this.detail = '请先导入有效的 WireGuard .conf 文件（密钥与值须在同一行，如 PrivateKey = xxxx）。';
+      this.getUIContext().showAlertDialog({
+        title: '连接未就绪',
+        message: '尚未导入有效的 WireGuard .conf 配置。请先在设置页导入配置，每项密钥与值必须在同一行（如 PrivateKey = xxxx）。',
+        confirm: {
+          value: '去设置',
+          action: (): void => {
+            this.goToPage('settings');
+          }
+        },
+        cancel: (): void => {}
+      });
       return;
     }
     if (this.selectedApps.length === 0) {
-      this.goToPage('settings');
       this.detail = '请先添加需要通过 VPN 的应用。';
+      this.getUIContext().showAlertDialog({
+        title: '未选择转发应用',
+        message: '「已加入清单」中还没有应用。请到设置页添加需要通过 VPN 转发的应用（如浏览器），否则连接不会建立。',
+        confirm: {
+          value: '去设置',
+          action: (): void => {
+            this.goToPage('settings');
+          }
+        },
+        cancel: (): void => {}
+      });
       return;
     }
     this.pendingSwitch = 'connect';

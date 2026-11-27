@@ -35,6 +35,71 @@ export interface WgParsedConfig {
 }
 
 /**
+ * 判断一行是否为「裸 WireGuard 密钥」（43 个 base64 字符 + 1 个补位 '='，即解码后 32 字节）
+ */
+function isBareWireGuardKeyToken(line: string): boolean {
+  return /^[A-Za-z0-9+/]{43}=$/.test(line);
+}
+
+/**
+ * 宽容处理常见复制粘贴破损：PrivateKey=/PublicKey=/PresharedKey= 值为空、
+ * 紧随其后的行是裸 base64 密钥时，合并回一行（官方格式密钥与值同行）。
+ * 兼容笔记类应用渲染/复制引入的换行（AGC 审核实测场景）。
+ */
+function joinSplitKeyLines(lines: string[]): string[] {
+  const merged: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line: string = lines[i].trim();
+    const eqIdx: number = line.indexOf('=');
+    if (eqIdx !== -1 && line.substring(eqIdx + 1).trim() === '') {
+      const key: string = line.substring(0, eqIdx).trim().toLowerCase();
+      if (key === 'privatekey' || key === 'publickey' || key === 'presharedkey') {
+        if (i + 1 < lines.length && isBareWireGuardKeyToken(lines[i + 1].trim())) {
+          merged.push(line + lines[i + 1].trim());
+          i++;
+          continue;
+        }
+      }
+    }
+    merged.push(lines[i]);
+  }
+  return merged;
+}
+
+/**
+ * 校验 WireGuard 密钥格式（43 个 base64 字符 + '='，base64 解码后为 32 字节）
+ */
+function isValidWireGuardKey(value?: string): boolean {
+  if (!value) {
+    return false;
+  }
+  return isBareWireGuardKeyToken(value);
+}
+
+/**
+ * 校验 DNS 服务器：IPv4 点分十进制（0-255）或含 ':' 的 IPv6 字面量
+ */
+function isValidDnsServer(value: string): boolean {
+  if (value.includes(':')) {
+    return true;
+  }
+  const parts: string[] = value.split('.');
+  if (parts.length !== 4) {
+    return false;
+  }
+  for (const part of parts) {
+    if (!/^\d+$/.test(part)) {
+      return false;
+    }
+    const num: number = parseInt(part, 10);
+    if (num < 0 || num > 255) {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * 解析 WireGuard .conf 文件内容
  * @param content 文件文本内容
  * @returns 解析结果
@@ -49,7 +114,7 @@ export function parseWgConfig(content: string): WgParsedConfig {
     clientAddressFull: '',
   };
 
-  const lines: string[] = content.split(/\r?\n/);
+  const lines: string[] = joinSplitKeyLines(content.split(/\r?\n/));
   let currentSection: string = '';
 
   for (const rawLine of lines) {
@@ -152,6 +217,26 @@ export function parseWgConfig(content: string): WgParsedConfig {
   }
   if (!result.clientAddress) {
     result.error = (result.error ? result.error + '；' : '') + '配置文件中未找到 [Interface] Address';
+  }
+  if (!isValidWireGuardKey(result.privateKey)) {
+    result.error = (result.error ? result.error + '；' : '') +
+      '未找到有效的 [Interface] PrivateKey（密钥与值必须在同一行，如 PrivateKey = xxxx，请检查内容是否复制完整）';
+  }
+  if (!isValidWireGuardKey(result.publicKey)) {
+    result.error = (result.error ? result.error + '；' : '') +
+      '未找到有效的 [Peer] PublicKey（密钥与值必须在同一行，如 PublicKey = xxxx，请检查内容是否复制完整）';
+  }
+  if (!/^\d+$/.test(result.serverPort) ||
+    parseInt(result.serverPort, 10) < 1 || parseInt(result.serverPort, 10) > 65535) {
+    result.error = (result.error ? result.error + '；' : '') + '[Peer] Endpoint 端口无效（须为 1-65535）';
+  }
+  if (result.dnsServer && !isValidDnsServer(result.dnsServer)) {
+    // DNS 非法则回退默认 DNS（VpnAbility 对空值回退 DEFAULT_DNS）
+    result.dnsServer = '';
+  }
+  if (result.presharedKey && !isValidWireGuardKey(result.presharedKey)) {
+    // 预共享密钥非法则按未配置处理（VpnAbility 对空值跳过 setPresharedKey）
+    result.presharedKey = '';
   }
 
   return result;

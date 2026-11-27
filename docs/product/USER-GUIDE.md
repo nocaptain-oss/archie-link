@@ -27,6 +27,28 @@ ArchieLink 是一个**外网访问修复与建立工具**：它检测你的网�
 
 ## 4. 日常使用（auto 模式）
 
+### 配置文件从哪来
+
+`up` 消费你自有的 WireGuard 配置文件。按以下优先级获取（能不装官方客户端就不装）：
+
+**路径一：你已有任意 WireGuard 配置文件（零安装，优先）**
+
+- 已装过官方 Cloudflare WARP 客户端：配置文件已在 `~/Library/Application Support/CloudflareWARP/warp.conf`，`archielink up` 默认直接使用。
+- 商业 VPN 的标准配置 / 另一台机器导出的配置：设置 `ARCHIE_LINK_WG_CONFIG` 指向它即可（Windows 必须用此方式；macOS/Linux 亦可覆盖默认路径）。WARP 只是可选后端之一，任何标准 WireGuard 配置均可。
+
+**路径二：都没有时的零成本兜底——官方客户端注册（Agent 代装，GUI 仅备选）**
+
+1. **Agent 代装**：Agent 探测 Homebrew 可用后代为执行 `brew install --cask cloudflare-warp`（你确认一步即可；无 Homebrew 时 Agent 引导从 Cloudflare 官网下载页安装）。安装的是 **Cloudflare 官方 WARP 客户端**，作为注册后端使用；要求 macOS 14+，旧系统请改用路径一的 `ARCHIE_LINK_WG_CONFIG`。
+2. **CLI 注册（无 GUI）**：**你本人**在终端执行客户端自带的注册命令（`warp-cli` 的 registration 子命令，Agent 给出确切命令、每步原地等待）——注册完成后配置文件自动生成于默认路径。
+3. **GUI 备选（仅当 CLI 不可用或注册后配置文件未生成）**：打开客户端图形界面，开启一次完成注册，**立即关闭连接开关**（应用与配置文件保留）——客户端隧道保持开启时，共存检查会拒绝自动建立隧道（退出码 5）。
+4. 回终端：Agent 验证配置文件存在、`archielink coexist inspect` 确认无活动冲突隧道，继续 `archielink up`（默认使用该配置）。
+
+**要点：**
+
+- **合规边界**：出于合规考虑，注册需由你本人完成；ArchieLink 不代注册、不代配置，也不经手你与 Cloudflare 之间的凭据。
+- **已知限制**：注册端点在国内部分网络存在 DNS 污染，注册无法完成时可尝试更换网络（如手机热点）后重试，或改用路径一。CLI 注册在部分版本/环境下可能不可用或注册后配置文件未生成——此时用第 3 步 GUI 备选。
+- **一设备一密钥**：多台设备不要共用同一密钥配置（互抢连接），见 [TROUBLESHOOTING.md](TROUBLESHOOTING.md) §1。
+
 连接前先体检，确认无误再连接：
 
 ```bash
@@ -55,6 +77,8 @@ archielink rollback --json   # 启动失败后的确定性回滚
 | 9 | 另一进程持有锁 | 不要并发重试 |
 
 ## 5. 授权与付费
+
+> 购买前请确认配置文件已就绪（见 §4）：本产品消费你自有的 WireGuard 配置文件，不代注册、不代配置。
 
 ```bash
 # 统一购买入口（三产品，支付宝 aipay 网页收银台）
