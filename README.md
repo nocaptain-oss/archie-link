@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="docs/assets/banner.png" alt="汪连 ArchieLink｜外网访问专家——安全、省心的外网访问工具：手机、电脑、电视、服务器经 AI 机器人直通外网" width="984">
+</p>
+
 # 汪连 ArchieLink｜外网访问专家
 
 > **是什么：** 跨平台网络体检与外网连接恢复 CLI——先体检、再连接，失败自动还原；配套可安装的 AI Agent 技能与鸿蒙 / Android 伴生应用。
